@@ -1,0 +1,7 @@
+# Vercel Deployment Configuration
+
+# This file tells Vercel to use Vite (React) as the build system.
+
+[build]
+  command = "npm run build"
+  publish = "dist"
