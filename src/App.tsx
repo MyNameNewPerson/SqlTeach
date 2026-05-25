@@ -496,6 +496,43 @@ LEFT JOIN payments p ON p.order_id = o.id
 LEFT JOIN integration_logs l ON l.entity_type = 'order'
   AND l.entity_id = o.id
 WHERE o.id = 1004;`}</SqlCode>
+          <div className="mt-5 grid gap-3">
+            {[
+              {
+                code: 'SELECT o.id, o.status, o.total_amount',
+                text: 'Говорю базе: покажи номер заказа, его статус и сумму. Буква o - короткое имя таблицы orders, чтобы дальше не писать orders целиком.',
+              },
+              {
+                code: 'FROM orders o',
+                text: 'Начинаю с таблицы заказов, потому что проблема звучит про заказ. orders o значит: таблицу orders дальше называю коротко o.',
+              },
+              {
+                code: 'WHERE o.id = 1004',
+                text: 'Оставляю только один нужный заказ. Без WHERE я получил бы все заказы и быстро утонул бы в строках.',
+              },
+              {
+                code: 'LEFT JOIN customers c ON c.id = o.customer_id',
+                text: 'Добавляю клиента. c.id - id клиента в справочнике, o.customer_id - ссылка на клиента в заказе. LEFT JOIN нужен, чтобы заказ не пропал, даже если клиент не найден.',
+              },
+              {
+                code: 'LEFT JOIN payments p ON p.order_id = o.id',
+                text: 'Добавляю оплату. p.order_id показывает, к какому заказу относится платёж. Так проверяю: есть ли оплата и какой у неё статус.',
+              },
+              {
+                code: "LEFT JOIN integration_logs l ON l.entity_type = 'order' AND l.entity_id = o.id",
+                text: 'Добавляю лог интеграции. Беру только логи по заказам и только по текущему id заказа. Так можно увидеть ошибку внешней системы.',
+              },
+              {
+                code: 'AS payment_status',
+                text: 'AS даёт колонке понятное имя в результате. Без этого было бы просто status, и можно перепутать статус заказа со статусом оплаты.',
+              },
+            ].map((item, index) => (
+              <div key={item.code} className="rounded-md border border-slate-800 bg-slate-900/55 p-3">
+                <p className="font-mono text-sm text-teal-200">{index + 1}. {item.code}</p>
+                <p className="mt-2 text-sm text-slate-300">{item.text}</p>
+              </div>
+            ))}
+          </div>
           <p className="mt-4 text-sm text-slate-400">
             Такой шаблон легко объяснить: сначала нахожу заказ, потом смотрю клиента, оплату и лог интеграции.
           </p>
