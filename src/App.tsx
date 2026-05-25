@@ -18,6 +18,8 @@ import {
   Trophy,
 } from 'lucide-react'
 import { erpCases, finalExam, interviewPrompts, modules, sqlReference } from './data/course'
+import { beginnerGlossary, sourceTakeaways, syntaxDictionary, workedExamples } from './data/learning'
+import type { WorkedExample } from './data/learning'
 import { schemaSummary, seedSql } from './lib/sqlSeed'
 import { defaultProgress, loadProgress, resetStoredProgress, saveProgress } from './lib/storage'
 import { cn } from './lib/utils'
@@ -130,8 +132,8 @@ function App() {
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100">
       <div className="flex min-h-screen">
-        {/* Боковая панель - скрыта на мобильных/планшетах, видна на lg */}
-        <aside className="sticky top-0 hidden h-screen w-72 shrink-0 border-r border-slate-800 bg-slate-950/95 p-4 lg:block">
+        {/* Боковая панель оставлена только для desktop, чтобы планшеты не зажимали контент. */}
+        <aside className="sticky top-0 hidden h-screen w-72 shrink-0 border-r border-slate-800 bg-slate-950/95 p-4 xl:block">
           <div className="mb-6 rounded-lg border border-slate-800 bg-slate-900/60 p-4">
             <div className="mb-3 flex items-center gap-3">
               <div className="grid size-10 place-items-center rounded-md bg-teal-400 text-slate-950">
@@ -168,35 +170,22 @@ function App() {
         </aside>
 
         <main className="min-w-0 flex-1">
-          <header className="sticky top-0 z-30 border-b border-slate-800 bg-slate-950/95 px-4 py-4 backdrop-blur-sm lg:px-8">
+          <header className="sticky top-0 z-30 border-b border-slate-800 bg-slate-950/95 px-4 py-4 backdrop-blur-sm xl:px-8">
             <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
               <div>
                 <p className="text-xs uppercase tracking-[0.18em] text-teal-300">local interactive course</p>
                 <h1 className="mt-1 text-2xl font-semibold text-white lg:text-3xl">SQL ERP Engineer Course</h1>
               </div>
-              <div className="grid gap-2 grid-cols-3 lg:gap-3">
+              <div className="grid grid-cols-3 gap-2 lg:gap-3">
                 <Metric label="Прогресс" value={`${completedPercent}%`} />
                 <Metric label="Тесты" value={`${averageQuiz}%`} />
                 <Metric label="Модулей" value={`${progress.completedModules.length}/${modules.length}`} />
               </div>
             </div>
-            {/* Навигация для мобильных и планшетов - скрыта на lg и больше */}
-            <div className="pointer-events-auto mt-4 flex gap-2 overflow-x-auto pb-2 lg:hidden">
-              {navItems.map((item) => (
-                <Button
-                  key={item.id}
-                  variant={activeView === item.id ? 'primary' : 'secondary'}
-                  className="pointer-events-auto shrink-0"
-                  onClick={() => setActiveView(item.id)}
-                >
-                  <item.icon size={16} />
-                  {item.label}
-                </Button>
-              ))}
-            </div>
+            <MobileNav activeView={activeView} onChange={setActiveView} />
           </header>
 
-          <div className="mx-auto max-w-7xl px-4 py-6 lg:px-8">
+          <div className="mx-auto max-w-7xl px-4 py-6 xl:px-8">
             {activeView === 'dashboard' && (
               <Dashboard
                 completedPercent={completedPercent}
@@ -257,9 +246,37 @@ function App() {
 
 function Metric({ label, value }: { label: string; value: string }) {
   return (
-    <div className="pointer-events-auto min-w-20 lg:min-w-28 rounded-md border border-slate-800 bg-slate-900/70 px-2 lg:px-4 py-2">
+    <div className="pointer-events-auto min-w-0 rounded-md border border-slate-800 bg-slate-900/70 px-2 py-2 sm:px-4">
       <p className="text-xs text-slate-400">{label}</p>
-      <p className="text-base lg:text-lg font-semibold text-white">{value}</p>
+      <p className="text-base font-semibold text-white lg:text-lg">{value}</p>
+    </div>
+  )
+}
+
+function MobileNav({ activeView, onChange }: { activeView: ViewId; onChange: (view: ViewId) => void }) {
+  return (
+    <div className="mt-4 xl:hidden">
+      <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-5">
+        {navItems.map((item) => {
+          const Icon = item.icon
+          return (
+            <button
+              key={item.id}
+              type="button"
+              onClick={() => onChange(item.id)}
+              className={cn(
+                'flex min-h-12 items-center justify-center gap-2 rounded-md border px-3 py-2 text-sm font-semibold transition active:scale-[0.99]',
+                activeView === item.id
+                  ? 'border-teal-400 bg-teal-400 text-slate-950'
+                  : 'border-slate-800 bg-slate-900 text-slate-200 hover:border-slate-700 hover:bg-slate-800',
+              )}
+            >
+              <Icon size={17} />
+              <span className="truncate">{item.label}</span>
+            </button>
+          )
+        })}
+      </div>
     </div>
   )
 }
@@ -286,6 +303,7 @@ function Dashboard({
   onReset: () => void
 }) {
   const nextModule = modules.find((module) => !progress.completedModules.includes(module.id)) ?? modules[modules.length - 1]
+  const lastModule = modules.find((module) => module.id === progress.lastModuleId) ?? modules[0]
 
   return (
     <div className="space-y-4 md:space-y-6">
@@ -298,7 +316,11 @@ function Dashboard({
               Не зубрим команды отдельно. Учимся думать как ERP-инженер: понять проблему, выбрать таблицы, написать запрос, объяснить вывод на собеседовании.
             </p>
           </div>
-          <div className="grid gap-3 lg:gap-4 grid-cols-1 lg:grid-cols-3">
+          <div className="grid gap-3 sm:grid-cols-2 lg:gap-4 xl:grid-cols-4">
+            <Card className="pointer-events-auto p-3 lg:p-4">
+              <p className="text-xs lg:text-sm text-slate-400">Где остановился</p>
+              <p className="mt-2 text-sm lg:text-base font-semibold text-white">{lastModule.number}. {lastModule.title}</p>
+            </Card>
             <Card className="pointer-events-auto p-3 lg:p-4">
               <p className="text-xs lg:text-sm text-slate-400">Следующий модуль</p>
               <p className="mt-2 text-sm lg:text-base font-semibold text-white">{nextModule.number}. {nextModule.title}</p>
@@ -314,7 +336,7 @@ function Dashboard({
           </div>
           <div className="mt-4 lg:mt-6 flex flex-wrap gap-2 lg:gap-3">
             <Button onClick={onOpenSprint} className="pointer-events-auto text-sm lg:text-base"><CalendarDays size={16} />План на 3 дня</Button>
-            <Button variant="secondary" onClick={onOpenModules} className="pointer-events-auto text-sm lg:text-base"><Play size={16} />Модули</Button>
+            <Button variant="secondary" onClick={onOpenModules} className="pointer-events-auto text-sm lg:text-base"><Play size={16} />Продолжить урок</Button>
             <Button variant="secondary" onClick={onOpenSandbox} className="pointer-events-auto text-sm lg:text-base"><TerminalSquare size={16} />Песочница</Button>
             <Button variant="danger" onClick={onReset} className="pointer-events-auto text-sm lg:text-base"><RotateCcw size={16} />Сброс</Button>
           </div>
@@ -410,6 +432,15 @@ function SprintView({ onOpenModules, onOpenSandbox }: { onOpenModules: () => voi
             ))}
           </div>
         </Card>
+      </section>
+
+      <section className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+        {sourceTakeaways.map((item) => (
+          <Card key={item.title} className="p-4">
+            <h3 className="font-semibold text-white">{item.title}</h3>
+            <p className="mt-2 text-sm text-slate-400">{item.text}</p>
+          </Card>
+        ))}
       </section>
 
       <section className="grid gap-2 lg:gap-4 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
@@ -522,7 +553,7 @@ function ModulesView({
 
   return (
     <div className="grid gap-6 xl:grid-cols-[320px_1fr]">
-      <Card className="h-fit p-3">
+      <Card className="grid h-fit gap-2 p-3 sm:grid-cols-2 lg:grid-cols-3 xl:block">
         {modules.map((module) => {
           const itemStatus = moduleStatus(module, progress)
           return (
@@ -531,7 +562,7 @@ function ModulesView({
               type="button"
               onClick={() => onSelect(module.id)}
               className={cn(
-                'mb-2 w-full rounded-md border border-transparent p-3 text-left transition hover:border-slate-700 hover:bg-slate-900',
+                'w-full rounded-md border border-transparent p-3 text-left transition hover:border-slate-700 hover:bg-slate-900 xl:mb-2',
                 activeModule.id === module.id && 'border-teal-400/40 bg-teal-400/10',
               )}
             >
@@ -575,6 +606,8 @@ function ModulesView({
           </div>
         </Card>
 
+        <WorkedExampleCard example={workedExamples[activeModule.id]} />
+
         {activeModule.lessons.map((lesson) => (
           <Card key={lesson.title} className="p-6">
             <div className="flex flex-wrap items-center gap-3">
@@ -584,21 +617,115 @@ function ModulesView({
             <div className="mt-4 space-y-3 text-slate-300">
               {lesson.content.map((paragraph) => <p key={paragraph}>{paragraph}</p>)}
             </div>
-            {lesson.sql && <div className="mt-5"><SqlCode>{lesson.sql}</SqlCode></div>}
+            {lesson.sql && (
+              <div className="mt-5 space-y-4">
+                <SqlCode>{lesson.sql}</SqlCode>
+                <SyntaxExplainer sql={lesson.sql} />
+              </div>
+            )}
             <div className="mt-5 rounded-md border border-sky-400/20 bg-sky-400/10 p-4 text-sm text-sky-100">{lesson.engineerNote}</div>
           </Card>
         ))}
 
         <QuizCard key={activeModule.id} module={activeModule} savedScore={progress.quizScores[activeModule.id]} onScore={onQuizScore} />
-
-        <Card className="p-6">
-          <h3 className="text-xl font-semibold text-white">Мини-задание: {activeModule.task.title}</h3>
-          <p className="mt-3 text-slate-300">{activeModule.task.prompt}</p>
-          <div className="mt-5"><SqlCode>{activeModule.task.starterSql}</SqlCode></div>
-          <p className="mt-4 text-sm text-slate-400">{activeModule.task.expectedHint}</p>
-        </Card>
+        <TaskCard title={`Мини-задание: ${activeModule.task.title}`} prompt={activeModule.task.prompt} sql={activeModule.task.starterSql} hint={activeModule.task.expectedHint} />
       </div>
     </div>
+  )
+}
+
+function WorkedExampleCard({ example }: { example?: WorkedExample }) {
+  if (!example) return null
+
+  return (
+    <Card className="p-6">
+      <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+        <div>
+          <Badge tone="teal">разобранный пример</Badge>
+          <h3 className="mt-3 text-2xl font-semibold text-white">{example.title}</h3>
+          <p className="mt-2 text-slate-300">{example.scenario}</p>
+        </div>
+        <Badge tone="amber">сначала понять</Badge>
+      </div>
+      <div className="mt-5"><SqlCode>{example.sql}</SqlCode></div>
+      <div className="mt-5 grid gap-3 lg:grid-cols-2">
+        {example.lineByLine.map((line, index) => (
+          <div key={line} className="flex gap-3 rounded-md border border-slate-800 bg-slate-900/55 p-3">
+            <span className="grid size-7 shrink-0 place-items-center rounded-md bg-slate-800 text-xs font-bold text-teal-200">{index + 1}</span>
+            <p className="text-sm text-slate-300">{line}</p>
+          </div>
+        ))}
+      </div>
+      <div className="mt-5 grid gap-3 md:grid-cols-3">
+        <InfoBox title="Почему так" text={example.whyThisWay} tone="teal" />
+        <InfoBox title="Частая ошибка" text={example.commonMistake} tone="amber" />
+        <InfoBox title="Попробуй сам" text={example.tryNext} tone="blue" />
+      </div>
+    </Card>
+  )
+}
+
+function InfoBox({ title, text, tone = 'teal' }: { title: string; text: string; tone?: 'teal' | 'amber' | 'blue' }) {
+  const toneClasses = {
+    teal: 'border-teal-400/20 bg-teal-400/10 text-teal-100',
+    amber: 'border-amber-400/20 bg-amber-400/10 text-amber-100',
+    blue: 'border-sky-400/20 bg-sky-400/10 text-sky-100',
+  }
+
+  return (
+    <div className={cn('rounded-md border p-4 text-sm', toneClasses[tone])}>
+      <p className="font-semibold text-white">{title}</p>
+      <p className="mt-2">{text}</p>
+    </div>
+  )
+}
+
+function SyntaxExplainer({ sql }: { sql: string }) {
+  const upperSql = sql.toUpperCase()
+  const notes = syntaxDictionary.filter((item) => upperSql.includes(item.token))
+
+  if (!notes.length) return null
+
+  return (
+    <div className="rounded-md border border-slate-800 bg-slate-900/55 p-4">
+      <p className="text-sm font-semibold text-white">Что означает синтаксис и почему пишем именно так</p>
+      <div className="mt-3 grid gap-3 md:grid-cols-2">
+        {notes.slice(0, 4).map((item) => (
+          <div key={item.title} className="rounded-md border border-slate-800 bg-slate-950/60 p-3">
+            <p className="font-mono text-sm font-semibold text-teal-200">{item.title}</p>
+            <p className="mt-2 text-sm text-slate-300">{item.meaning}</p>
+            <p className="mt-2 text-sm text-slate-400">{item.why}</p>
+            <p className="mt-2 text-xs text-amber-200">Ошибка новичка: {item.mistake}</p>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+function TaskCard({ title, prompt, sql, hint }: { title: string; prompt: string; sql: string; hint: string }) {
+  const [showHint, setShowHint] = useState(false)
+
+  return (
+    <Card className="p-6">
+      <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+        <div>
+          <Badge tone="amber">сначала попробуй сам</Badge>
+          <h3 className="mt-3 text-xl font-semibold text-white">{title}</h3>
+          <p className="mt-3 text-slate-300">{prompt}</p>
+        </div>
+        <Button variant="secondary" onClick={() => setShowHint((value) => !value)}>
+          {showHint ? 'Скрыть подсказку' : 'Показать подсказку'}
+        </Button>
+      </div>
+      <div className="mt-5"><SqlCode>{sql}</SqlCode></div>
+      <p className="mt-3 text-sm text-slate-500">Сначала выполни запрос в песочнице и попробуй объяснить результат своими словами.</p>
+      {showHint && (
+        <div className="mt-4 rounded-md border border-teal-400/20 bg-teal-400/10 p-4 text-sm text-teal-100">
+          {hint}
+        </div>
+      )}
+    </Card>
   )
 }
 
@@ -704,24 +831,26 @@ function SqlSandbox({ initialSql }: { initialSql: string }) {
   }
 
   return (
-    <div className="grid gap-6 xl:grid-cols-[0.75fr_1.25fr]">
+    <div className="grid gap-6 lg:grid-cols-[0.72fr_1.28fr]">
       <div className="space-y-6">
         <Card className="p-6">
-          <SectionTitle title="SQL-песочница" subtitle="SQLite в браузере через sql.js. Интернет и сервер не нужны." compact />
+          <SectionTitle title="SQL-песочница" subtitle="SQLite работает прямо в браузере через sql.js. На Vercel внешняя БД не нужна: учебная база создаётся локально при открытии страницы." compact />
           <div className="mt-5 space-y-2">
             {schemaSummary.map((table) => <div key={table} className="rounded-md border border-slate-800 bg-slate-900/60 px-3 py-2 font-mono text-xs text-slate-300">{table}</div>)}
           </div>
-          <div className="mt-5 flex gap-3">
+          <div className="mt-5 flex flex-wrap gap-3">
             <Button onClick={runQuery}><Play size={17} />Выполнить</Button>
             <Button variant="secondary" onClick={resetDb}><RotateCcw size={17} />Сбросить БД</Button>
           </div>
+          <p className="mt-3 text-xs text-slate-500">Подсказка: на клавиатуре можно нажать Ctrl + Enter.</p>
         </Card>
         <Card className="p-5">
           <h3 className="font-semibold text-white">Быстрые запросы</h3>
-          <div className="mt-4 grid gap-2">
-            {modules.slice(1, 8).map((module) => (
+          <p className="mt-2 text-sm text-slate-400">Выбирай заготовку, запускай, потом меняй одно условие и смотри, как меняется результат.</p>
+          <div className="mt-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-1">
+            {modules.map((module) => (
               <button key={module.id} type="button" onClick={() => setSql(module.task.starterSql)} className="rounded-md border border-slate-800 bg-slate-900 px-3 py-2 text-left text-sm text-slate-300 hover:border-teal-400/40 hover:text-white">
-                {module.task.title}
+                <span className="text-teal-200">М{module.number}</span> {module.task.title}
               </button>
             ))}
           </div>
@@ -733,10 +862,17 @@ function SqlSandbox({ initialSql }: { initialSql: string }) {
           <textarea
             value={sql}
             onChange={(event) => setSql(event.target.value)}
+            onKeyDown={(event) => {
+              if ((event.ctrlKey || event.metaKey) && event.key === 'Enter') {
+                event.preventDefault()
+                runQuery()
+              }
+            }}
             spellCheck={false}
             className="min-h-72 w-full resize-y rounded-md border border-slate-800 bg-slate-950 p-4 font-mono text-sm leading-6 text-slate-100 outline-none focus:border-teal-400"
           />
           <p className={cn('mt-3 text-sm', message.toLowerCase().includes('error') || message.toLowerCase().includes('syntax') ? 'text-rose-200' : 'text-slate-300')}>{message}</p>
+          <div className="mt-4"><SyntaxExplainer sql={sql} /></div>
         </Card>
 
         <Card className="overflow-hidden">
@@ -790,17 +926,35 @@ function PracticeView({ onUseTask }: { onUseTask: (moduleId: string, starterSql:
       <SectionTitle title="Практические задания" subtitle="Каждое задание можно перенести в SQL-песочницу и выполнить на учебной ERP-базе." />
       <div className="grid gap-4 lg:grid-cols-2">
         {modules.map((module) => (
-          <Card key={module.id} className="p-5">
-            <Badge tone="blue">Модуль {module.number}</Badge>
-            <h3 className="mt-3 text-lg font-semibold text-white">{module.task.title}</h3>
-            <p className="mt-2 text-sm text-slate-300">{module.task.prompt}</p>
-            <div className="mt-4"><SqlCode>{module.task.starterSql}</SqlCode></div>
-            <p className="mt-3 text-sm text-slate-400">{module.task.expectedHint}</p>
-            <Button className="mt-4" variant="secondary" onClick={() => onUseTask(module.id, module.task.starterSql)}>Открыть в песочнице</Button>
-          </Card>
+          <PracticeTaskCard key={module.id} module={module} onUseTask={onUseTask} />
         ))}
       </div>
     </div>
+  )
+}
+
+function PracticeTaskCard({ module, onUseTask }: { module: CourseModule; onUseTask: (moduleId: string, starterSql: string) => void }) {
+  const [showHint, setShowHint] = useState(false)
+
+  return (
+    <Card className="p-5">
+      <div className="flex items-start justify-between gap-3">
+        <Badge tone="blue">Модуль {module.number}</Badge>
+        <Badge tone={showHint ? 'teal' : 'amber'}>{showHint ? 'разбор открыт' : 'сначала попытка'}</Badge>
+      </div>
+      <h3 className="mt-3 text-lg font-semibold text-white">{module.task.title}</h3>
+      <p className="mt-2 text-sm text-slate-300">{module.task.prompt}</p>
+      <div className="mt-4"><SqlCode>{module.task.starterSql}</SqlCode></div>
+      <div className="mt-4 flex flex-wrap gap-2">
+        <Button variant="secondary" onClick={() => onUseTask(module.id, module.task.starterSql)}>Открыть в песочнице</Button>
+        <Button variant="ghost" onClick={() => setShowHint((value) => !value)}>{showHint ? 'Скрыть разбор' : 'Показать разбор'}</Button>
+      </div>
+      {showHint && (
+        <div className="mt-4 rounded-md border border-teal-400/20 bg-teal-400/10 p-4 text-sm text-teal-100">
+          {module.task.expectedHint}
+        </div>
+      )}
+    </Card>
   )
 }
 
@@ -862,7 +1016,36 @@ function ExamView() {
 function ReferenceView() {
   return (
     <div className="space-y-6">
-      <SectionTitle title="Справочник SQL-команд" subtitle="Короткие команды, смысл и пример для повторения перед интервью." />
+      <SectionTitle title="Справочник SQL-команд" subtitle="Не просто команды, а слова и идеи, которыми нужно уверенно говорить на интервью." />
+
+      <Card className="p-6">
+        <h3 className="text-xl font-semibold text-white">Словарь новичка: простыми словами</h3>
+        <div className="mt-5 grid gap-3 md:grid-cols-2">
+          {beginnerGlossary.map((item) => (
+            <div key={item.term} className="rounded-md border border-slate-800 bg-slate-900/55 p-4">
+              <p className="font-semibold text-teal-200">{item.term}</p>
+              <p className="mt-2 text-sm text-slate-300">{item.simple}</p>
+              <p className="mt-2 text-sm text-slate-400">ERP-пример: {item.erp}</p>
+              <p className="mt-2 text-xs text-sky-200">Как сказать на интервью: {item.interview}</p>
+            </div>
+          ))}
+        </div>
+      </Card>
+
+      <Card className="p-6">
+        <h3 className="text-xl font-semibold text-white">Разбор синтаксиса: что означает и где ошибаются</h3>
+        <div className="mt-5 grid gap-3 md:grid-cols-2">
+          {syntaxDictionary.map((item) => (
+            <div key={item.title} className="rounded-md border border-slate-800 bg-slate-900/55 p-4">
+              <p className="font-mono font-semibold text-teal-200">{item.title}</p>
+              <p className="mt-2 text-sm text-slate-300">{item.meaning}</p>
+              <p className="mt-2 text-sm text-slate-400">{item.why}</p>
+              <p className="mt-2 text-xs text-amber-200">Ошибка новичка: {item.mistake}</p>
+            </div>
+          ))}
+        </div>
+      </Card>
+
       <div className="grid gap-4 lg:grid-cols-2">
         {sqlReference.map((item) => (
           <Card key={item.command} className="p-5">

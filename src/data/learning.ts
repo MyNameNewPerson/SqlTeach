@@ -1,0 +1,321 @@
+export type WorkedExample = {
+  title: string
+  scenario: string
+  sql: string
+  lineByLine: string[]
+  whyThisWay: string
+  commonMistake: string
+  tryNext: string
+}
+
+export const sourceTakeaways = [
+  {
+    title: 'Меньше пассивного чтения',
+    text: 'Лучшие интерактивные SQL-курсы дают короткое объяснение, затем сразу заставляют писать запрос и видеть результат.',
+  },
+  {
+    title: 'Worked example перед самостоятельной задачей',
+    text: 'Новичку легче учиться, когда сначала есть разобранный пример: задача, запрос, объяснение каждой строки, частая ошибка.',
+  },
+  {
+    title: 'Обратная связь после попытки',
+    text: 'Ответ или подсказка не должны лежать прямо под задачей. Сначала попытка, потом подсказка, потом эталонное объяснение.',
+  },
+  {
+    title: 'Бизнес-контекст важнее зубрёжки',
+    text: 'На ERP-собеседовании SQL проверяют через реальные процессы: заказ, клиент, оплата, склад, интеграция, плохие данные.',
+  },
+]
+
+export const beginnerGlossary = [
+  {
+    term: 'База данных',
+    simple: 'Место, где ERP хранит данные не одной кучей, а в связанных таблицах.',
+    erp: 'Например, клиенты отдельно, заказы отдельно, оплаты отдельно.',
+    interview: 'Я смотрю не одну таблицу, а цепочку данных бизнес-процесса.',
+  },
+  {
+    term: 'Таблица',
+    simple: 'Список однотипных объектов или событий.',
+    erp: 'customers - список клиентов, orders - список заказов.',
+    interview: 'Сначала выбираю главную таблицу, от которой начинается расследование.',
+  },
+  {
+    term: 'Строка',
+    simple: 'Одна запись в таблице.',
+    erp: 'Один конкретный заказ или один конкретный платёж.',
+    interview: 'Я нахожу нужную строку по id, статусу или дате.',
+  },
+  {
+    term: 'Колонка',
+    simple: 'Свойство строки.',
+    erp: 'status, order_date, amount, customer_id.',
+    interview: 'Я выбираю только нужные колонки, чтобы не утонуть в данных.',
+  },
+  {
+    term: 'PRIMARY KEY',
+    simple: 'Главный уникальный id строки.',
+    erp: 'customers.id однозначно указывает на клиента.',
+    interview: 'PK нужен, чтобы ссылаться на строку без путаницы.',
+  },
+  {
+    term: 'FOREIGN KEY',
+    simple: 'Колонка-ссылка на другую таблицу.',
+    erp: 'orders.customer_id ссылается на customers.id.',
+    interview: 'FK показывает, как таблицы связаны в бизнес-процессе.',
+  },
+  {
+    term: 'NULL',
+    simple: 'Значение неизвестно или не заполнено. Это не ноль и не пустой текст.',
+    erp: 'paid_at = NULL значит успешной даты оплаты нет.',
+    interview: 'NULL проверяю через IS NULL, а не через = NULL.',
+  },
+  {
+    term: 'JOIN',
+    simple: 'Способ собрать данные из нескольких таблиц по связи.',
+    erp: 'Заказ + клиент + оплата + лог интеграции.',
+    interview: 'JOIN нужен, чтобы увидеть бизнес-состояние целиком.',
+  },
+]
+
+export const syntaxDictionary = [
+  {
+    token: 'SELECT',
+    title: 'SELECT',
+    meaning: 'Какие колонки показать в результате.',
+    why: 'Пишем только нужные поля, чтобы результат был читаемым и полезным для диагностики.',
+    mistake: 'SELECT * удобно для разведки, но плохо для отчёта и интервью-ответа: слишком много шума.',
+  },
+  {
+    token: 'FROM',
+    title: 'FROM',
+    meaning: 'Из какой главной таблицы начинаем запрос.',
+    why: 'В ERP сначала выбираем главную сущность: заказ, клиент, товар, платёж или лог.',
+    mistake: 'Начинать “откуда попало” и потом не понимать, почему строки размножились.',
+  },
+  {
+    token: 'WHERE',
+    title: 'WHERE',
+    meaning: 'Фильтр строк до группировки.',
+    why: 'Сужает расследование: конкретный заказ, период, статус, город, источник интеграции.',
+    mistake: 'Забыть WHERE в UPDATE/DELETE или фильтровать агрегаты через WHERE вместо HAVING.',
+  },
+  {
+    token: 'LEFT JOIN',
+    title: 'LEFT JOIN',
+    meaning: 'Оставляет все строки слева и добавляет данные справа, если связь найдена.',
+    why: 'Лучший JOIN для диагностики плохих данных: проблемная строка не пропадёт.',
+    mistake: 'Использовать INNER JOIN и случайно скрыть заказ без клиента или платёж без заказа.',
+  },
+  {
+    token: 'INNER JOIN',
+    title: 'INNER JOIN',
+    meaning: 'Показывает только строки, где связь есть в обеих таблицах.',
+    why: 'Подходит для отчёта по корректным данным, где нужны только подтверждённые связи.',
+    mistake: 'Использовать его для поиска отсутствующих связей.',
+  },
+  {
+    token: 'GROUP BY',
+    title: 'GROUP BY',
+    meaning: 'Собирает строки в группы, чтобы считать COUNT, SUM, AVG.',
+    why: 'ERP-отчёты почти всегда отвечают на вопросы “сколько”, “на какую сумму”, “по каким статусам”.',
+    mistake: 'Вывести обычную колонку без GROUP BY и не понимать, к какой группе она относится.',
+  },
+  {
+    token: 'HAVING',
+    title: 'HAVING',
+    meaning: 'Фильтрует группы после GROUP BY.',
+    why: 'Если условие зависит от COUNT или SUM, оно пишется после группировки.',
+    mistake: 'Писать COUNT(*) > 1 в WHERE.',
+  },
+  {
+    token: 'COALESCE',
+    title: 'COALESCE',
+    meaning: 'Берёт первое не-NULL значение.',
+    why: 'Делает отчёт понятнее: вместо пустого города можно показать city_missing.',
+    mistake: 'Думать, что COALESCE исправляет данные в таблице. Он только меняет вывод запроса.',
+  },
+  {
+    token: 'EXISTS',
+    title: 'EXISTS / NOT EXISTS',
+    meaning: 'Проверяет, существует ли связанная строка.',
+    why: 'Очень естественно выражает ERP-вопрос: есть ли успешная оплата, нет ли остатка, есть ли лог ошибки.',
+    mistake: 'Считать SELECT 1 странным. В EXISTS важен факт строки, а не выбранные колонки.',
+  },
+  {
+    token: 'BEGIN',
+    title: 'BEGIN / COMMIT / ROLLBACK',
+    meaning: 'Начало безопасного блока изменений.',
+    why: 'Перед исправлением ERP-данных нужно иметь возможность проверить и откатить изменение.',
+    mistake: 'Сразу делать UPDATE без SELECT-проверки и rollback-плана.',
+  },
+]
+
+export const workedExamples: Record<string, WorkedExample> = {
+  'module-0': {
+    title: 'Как связаны заказ, клиент и оплата',
+    scenario: 'Нужно понять, почему заказ не живёт в одной огромной таблице.',
+    sql: `SELECT o.id, o.status, c.name, p.status AS payment_status
+FROM orders o
+LEFT JOIN customers c ON c.id = o.customer_id
+LEFT JOIN payments p ON p.order_id = o.id
+WHERE o.id = 1004;`,
+    lineByLine: [
+      'SELECT выбирает только поля, которые нужны для ответа: id заказа, статус заказа, клиент, статус оплаты.',
+      'FROM orders o говорит: главная сущность расследования - заказ. o - короткое имя таблицы.',
+      'LEFT JOIN customers нужен, чтобы увидеть клиента, но не потерять заказ, если клиент не найден.',
+      'LEFT JOIN payments добавляет оплату, потому что проблема может быть в платёжной части.',
+      'WHERE o.id = 1004 сужает запрос до одного заказа, а не показывает всю ERP.',
+    ],
+    whyThisWay: 'Для диагностики используем LEFT JOIN, а не INNER JOIN: если связь сломана, строка всё равно останется в результате.',
+    commonMistake: 'Новичок часто делает SELECT * FROM orders и не видит причину, потому что оплата и клиент лежат в других таблицах.',
+    tryNext: 'Поменяй 1004 на 1005 и посмотри, что будет с клиентом и оплатой.',
+  },
+  'module-1': {
+    title: 'Фильтр как рабочий поиск',
+    scenario: 'Нужно найти проблемные заказы за февраль, а не читать все заказы подряд.',
+    sql: `SELECT id, status, order_date, total_amount
+FROM orders
+WHERE status IN ('new', 'payment_pending')
+  AND order_date BETWEEN '2026-02-01' AND '2026-02-28'
+ORDER BY order_date DESC;`,
+    lineByLine: [
+      'SELECT оставляет только полезные колонки для списка заказов.',
+      'FROM orders выбирает таблицу заказов, потому что вопрос именно про заказы.',
+      'IN короче и понятнее, чем status = ... OR status = ... для нескольких статусов.',
+      'BETWEEN задаёт диапазон дат включительно.',
+      'ORDER BY DESC показывает свежие записи сверху.',
+    ],
+    whyThisWay: 'Такой запрос похож на рабочий фильтр в ERP: статус + период + сортировка.',
+    commonMistake: 'Смешать AND и OR без скобок и получить лишние строки.',
+    tryNext: 'Добавь LIMIT 5 и объясни, зачем ограничивать результат на большой базе.',
+  },
+  'module-2': {
+    title: 'Найти заказ без клиента',
+    scenario: 'Отчёт теряет заказ, потому что связь с клиентом плохая.',
+    sql: `SELECT o.id, o.customer_id, o.status
+FROM orders o
+LEFT JOIN customers c ON c.id = o.customer_id
+WHERE c.id IS NULL;`,
+    lineByLine: [
+      'orders o - главная таблица, потому что ищем проблемные заказы.',
+      'LEFT JOIN customers сохраняет каждый заказ, даже если клиента нет.',
+      'ON c.id = o.customer_id описывает связь “клиент в справочнике = клиент в заказе”.',
+      'WHERE c.id IS NULL оставляет только те строки, где клиент справа не нашёлся.',
+    ],
+    whyThisWay: 'INNER JOIN здесь нельзя: он как раз скроет строки без клиента.',
+    commonMistake: 'Проверять o.customer_id IS NULL и пропустить случай, где customer_id = 999, но такого клиента нет.',
+    tryNext: 'Сделай такой же запрос для payments -> orders.',
+  },
+  'module-3': {
+    title: 'От строк к отчёту',
+    scenario: 'Менеджер спрашивает: сколько заказов и денег в каждом статусе?',
+    sql: `SELECT status, COUNT(*) AS orders_count, SUM(total_amount) AS total
+FROM orders
+GROUP BY status
+HAVING SUM(total_amount) > 500;`,
+    lineByLine: [
+      'status остаётся обычной колонкой, потому что по ней группируем.',
+      'COUNT(*) считает строки внутри каждого статуса.',
+      'SUM(total_amount) считает сумму заказов внутри каждого статуса.',
+      'GROUP BY status превращает список заказов в группы по статусам.',
+      'HAVING фильтрует уже посчитанные группы.',
+    ],
+    whyThisWay: 'WHERE фильтрует отдельные заказы, HAVING фильтрует итоговые группы.',
+    commonMistake: 'Пытаться написать WHERE SUM(total_amount) > 500.',
+    tryNext: 'Убери HAVING и сравни, какие группы вернулись.',
+  },
+  'module-4': {
+    title: 'NULL без ловушек',
+    scenario: 'В отчёте по клиентам город иногда пустой, и это надо показать понятно.',
+    sql: `SELECT id, name, COALESCE(city, 'city_missing') AS city_label
+FROM customers
+WHERE active = 1;`,
+    lineByLine: [
+      'COALESCE смотрит city: если там NULL, показывает запасной текст.',
+      'AS city_label даёт понятное имя вычисленной колонке.',
+      'WHERE active = 1 убирает неактивных клиентов из рабочего списка.',
+    ],
+    whyThisWay: 'Мы не меняем базу, а делаем вывод понятнее для человека.',
+    commonMistake: 'Писать city = NULL. Для NULL нужно IS NULL.',
+    tryNext: 'Сделай отдельный запрос WHERE city IS NULL.',
+  },
+  'module-5': {
+    title: 'Заказы без успешной оплаты',
+    scenario: 'Нужно найти заказы, где нет captured payment.',
+    sql: `SELECT o.id, o.status, o.total_amount
+FROM orders o
+WHERE NOT EXISTS (
+  SELECT 1
+  FROM payments p
+  WHERE p.order_id = o.id
+    AND p.status = 'captured'
+);`,
+    lineByLine: [
+      'Внешний запрос идёт по заказам.',
+      'NOT EXISTS говорит: оставь заказ, если внутри не нашлось ни одной строки.',
+      'p.order_id = o.id связывает внутренний платеж с текущим заказом.',
+      "p.status = 'captured' проверяет именно успешную оплату, а не любую оплату.",
+    ],
+    whyThisWay: 'Это почти дословно бизнес-вопрос: “покажи заказы, для которых не существует успешной оплаты”.',
+    commonMistake: 'Искать p.status != captured через JOIN и получить неверный результат при нескольких платежах.',
+    tryNext: 'Замени NOT EXISTS на EXISTS и посмотри заказы с успешной оплатой.',
+  },
+  'module-6': {
+    title: 'Безопасное изменение статуса',
+    scenario: 'Нужно объяснить, как исправить статус, не сломав данные.',
+    sql: `BEGIN;
+UPDATE orders
+SET status = 'paid'
+WHERE id = 1004;
+SELECT id, status FROM orders WHERE id = 1004;
+ROLLBACK;`,
+    lineByLine: [
+      'BEGIN начинает транзакцию.',
+      'UPDATE меняет только строки из WHERE.',
+      'SET задаёт новое значение.',
+      'SELECT после UPDATE проверяет, что изменилось.',
+      'ROLLBACK откатывает учебное изменение.',
+    ],
+    whyThisWay: 'На реальной ERP нельзя менять данные вслепую: сначала SELECT, потом транзакция, потом проверка.',
+    commonMistake: 'Забыть WHERE и изменить все заказы.',
+    tryNext: 'Перед UPDATE выполни SELECT с тем же WHERE и сравни результат до/после.',
+  },
+  'module-7': {
+    title: 'Лог интеграции как улика',
+    scenario: 'Внешняя система прислала данные, но бизнес-статус не обновился.',
+    sql: `SELECT source_system, entity_type, entity_id, status, message
+FROM integration_logs
+WHERE status IN ('error', 'warning')
+ORDER BY created_at DESC;`,
+    lineByLine: [
+      'integration_logs - место, где ищем следы внешних систем.',
+      'status IN оставляет ошибки и предупреждения.',
+      'ORDER BY created_at DESC показывает самые свежие события первыми.',
+    ],
+    whyThisWay: 'ERP-инженер не угадывает причину, а ищет факты: кто прислал, по какой сущности, с каким сообщением.',
+    commonMistake: 'Смотреть только orders и забыть, что статус мог не обновиться из-за интеграции.',
+    tryNext: "Добавь WHERE entity_type = 'order' AND entity_id = 1004.",
+  },
+  'module-8': {
+    title: 'Ответ собеседованию: от симптома к SQL',
+    scenario: 'Интервьюер спрашивает, как расследовать “оплата есть, статус старый”.',
+    sql: `SELECT o.id, c.name, o.status AS order_status,
+       p.status AS payment_status, l.message
+FROM orders o
+LEFT JOIN customers c ON c.id = o.customer_id
+LEFT JOIN payments p ON p.order_id = o.id
+LEFT JOIN integration_logs l ON l.entity_type = 'order' AND l.entity_id = o.id
+WHERE o.id = 1004;`,
+    lineByLine: [
+      'Начинаем с orders, потому что симптом относится к заказу.',
+      'Добавляем customers, чтобы понимать клиента.',
+      'Добавляем payments, чтобы проверить факт оплаты.',
+      'Добавляем integration_logs, чтобы увидеть ошибку процесса.',
+      'Фильтр по id делает ответ конкретным и проверяемым.',
+    ],
+    whyThisWay: 'Такой ответ показывает мышление инженера: бизнес-симптом -> таблицы -> связи -> вывод -> осторожность.',
+    commonMistake: 'Отвечать только “я бы сделал JOIN”, не объясняя зачем и какой результат ожидаю.',
+    tryNext: 'Проговори этот запрос вслух за 60 секунд как на интервью.',
+  },
+}
