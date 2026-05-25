@@ -1,7 +1,14 @@
-# Vercel Deployment Configuration
-
-# This file tells Vercel to use Vite (React) as the build system.
-
-[build]
-  command = "npm run build"
-  publish = "dist"
+{
+  "builds": [
+    {
+      "src": "vite.config.ts",
+      "use": "@vercel/static-build",
+      "config": {
+        "distDir": "dist"
+      }
+    }
+  ],
+  "routes": [
+    { "src": "/(.*)", "dest": "/" }
+  ]
+}
