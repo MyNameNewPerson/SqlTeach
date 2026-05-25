@@ -129,9 +129,10 @@ function App() {
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100">
-      <div className="flex min-h-screen flex-col md:flex-row">
-        <aside className="sticky top-0 hidden md:block h-[60px] md:h-screen w-full md:w-64 lg:w-72 shrink-0 border-b md:border-b-0 md:border-r border-slate-800 bg-slate-950/95 p-2 md:p-4">
-          <div className="mb-4 md:mb-6 rounded-lg border border-slate-800 bg-slate-900/60 p-3 md:p-4">
+      <div className="flex min-h-screen">
+        {/* Боковая панель - скрыта на мобильных/планшетах, видна на lg */}
+        <aside className="sticky top-0 hidden h-screen w-72 shrink-0 border-r border-slate-800 bg-slate-950/95 p-4 lg:block">
+          <div className="mb-6 rounded-lg border border-slate-800 bg-slate-900/60 p-4">
             <div className="mb-3 flex items-center gap-3">
               <div className="grid size-10 place-items-center rounded-md bg-teal-400 text-slate-950">
                 <DatabaseZap size={22} />
@@ -154,7 +155,7 @@ function App() {
                   type="button"
                   onClick={() => setActiveView(item.id)}
                   className={cn(
-                    'flex w-full items-center gap-3 rounded-md px-3 py-2.5 text-left text-sm text-slate-300 transition hover:bg-slate-900 hover:text-white',
+                    'pointer-events-auto flex w-full items-center gap-3 rounded-md px-3 py-2.5 text-left text-sm text-slate-300 transition hover:bg-slate-900 hover:text-white active:bg-teal-400/20',
                     activeView === item.id && 'bg-slate-800 text-white',
                   )}
                 >
@@ -167,24 +168,25 @@ function App() {
         </aside>
 
         <main className="min-w-0 flex-1">
-          <header className="sticky top-0 z-20 border-b border-slate-800 bg-slate-950/90 px-2 md:px-4 py-3 md:py-4 backdrop-blur xl:px-8">
-            <div className="flex flex-col gap-3 md:gap-4 xl:flex-row xl:items-center xl:justify-between">
+          <header className="sticky top-0 z-30 border-b border-slate-800 bg-slate-950/95 px-4 py-4 backdrop-blur-sm lg:px-8">
+            <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
               <div>
                 <p className="text-xs uppercase tracking-[0.18em] text-teal-300">local interactive course</p>
-                <h1 className="mt-1 text-xl md:text-2xl font-semibold text-white md:text-3xl">SQL ERP Engineer Course</h1>
+                <h1 className="mt-1 text-2xl font-semibold text-white lg:text-3xl">SQL ERP Engineer Course</h1>
               </div>
-              <div className="grid gap-2 md:gap-3 sm:grid-cols-3">
+              <div className="grid gap-2 grid-cols-3 lg:gap-3">
                 <Metric label="Прогресс" value={`${completedPercent}%`} />
                 <Metric label="Тесты" value={`${averageQuiz}%`} />
                 <Metric label="Модулей" value={`${progress.completedModules.length}/${modules.length}`} />
               </div>
             </div>
-            <div className="mt-3 flex gap-2 overflow-x-auto md:overflow-visible lg:hidden pb-2">
+            {/* Навигация для мобильных и планшетов - скрыта на lg и больше */}
+            <div className="pointer-events-auto mt-4 flex gap-2 overflow-x-auto pb-2 lg:hidden">
               {navItems.map((item) => (
                 <Button
                   key={item.id}
                   variant={activeView === item.id ? 'primary' : 'secondary'}
-                  className="shrink-0"
+                  className="pointer-events-auto shrink-0"
                   onClick={() => setActiveView(item.id)}
                 >
                   <item.icon size={16} />
@@ -194,7 +196,7 @@ function App() {
             </div>
           </header>
 
-          <div className="mx-auto max-w-7xl px-2 md:px-4 py-4 md:py-6 xl:px-8">
+          <div className="mx-auto max-w-7xl px-4 py-6 lg:px-8">
             {activeView === 'dashboard' && (
               <Dashboard
                 completedPercent={completedPercent}
@@ -255,9 +257,9 @@ function App() {
 
 function Metric({ label, value }: { label: string; value: string }) {
   return (
-    <div className="min-w-28 rounded-md border border-slate-800 bg-slate-900/70 px-4 py-2">
+    <div className="pointer-events-auto min-w-20 lg:min-w-28 rounded-md border border-slate-800 bg-slate-900/70 px-2 lg:px-4 py-2">
       <p className="text-xs text-slate-400">{label}</p>
-      <p className="text-lg font-semibold text-white">{value}</p>
+      <p className="text-base lg:text-lg font-semibold text-white">{value}</p>
     </div>
   )
 }
@@ -296,43 +298,43 @@ function Dashboard({
               Не зубрим команды отдельно. Учимся думать как ERP-инженер: понять проблему, выбрать таблицы, написать запрос, объяснить вывод на собеседовании.
             </p>
           </div>
-          <div className="grid gap-3 md:gap-4 md:grid-cols-3">
-            <Card className="p-4">
-              <p className="text-sm text-slate-400">Следующий модуль</p>
-              <p className="mt-2 font-semibold text-white">{nextModule.number}. {nextModule.title}</p>
+          <div className="grid gap-3 lg:gap-4 grid-cols-1 lg:grid-cols-3">
+            <Card className="pointer-events-auto p-3 lg:p-4">
+              <p className="text-xs lg:text-sm text-slate-400">Следующий модуль</p>
+              <p className="mt-2 text-sm lg:text-base font-semibold text-white">{nextModule.number}. {nextModule.title}</p>
             </Card>
-            <Card className="p-4">
-              <p className="text-sm text-slate-400">Фокус курса</p>
-              <p className="mt-2 font-semibold text-white">JOIN, агрегации, плохие данные</p>
+            <Card className="pointer-events-auto p-3 lg:p-4">
+              <p className="text-xs lg:text-sm text-slate-400">Фокус курса</p>
+              <p className="mt-2 text-sm lg:text-base font-semibold text-white">JOIN, агрегации, плохие данные</p>
             </Card>
-            <Card className="p-4">
-              <p className="text-sm text-slate-400">Формат</p>
-              <p className="mt-2 font-semibold text-white">Локально, без сервера</p>
+            <Card className="pointer-events-auto p-3 lg:p-4">
+              <p className="text-xs lg:text-sm text-slate-400">Формат</p>
+              <p className="mt-2 text-sm lg:text-base font-semibold text-white">Локально, без сервера</p>
             </Card>
           </div>
-          <div className="mt-4 md:mt-6 flex flex-wrap gap-2 md:gap-3">
-            <Button onClick={onOpenSprint}><CalendarDays size={17} />Открыть план на 3 дня</Button>
-            <Button variant="secondary" onClick={onOpenModules}><Play size={17} />Начать модуль</Button>
-            <Button variant="secondary" onClick={onOpenSandbox}><TerminalSquare size={17} />SQL-песочница</Button>
-            <Button variant="danger" onClick={onReset}><RotateCcw size={17} />Сбросить прогресс</Button>
+          <div className="mt-4 lg:mt-6 flex flex-wrap gap-2 lg:gap-3">
+            <Button onClick={onOpenSprint} className="pointer-events-auto text-sm lg:text-base"><CalendarDays size={16} />План на 3 дня</Button>
+            <Button variant="secondary" onClick={onOpenModules} className="pointer-events-auto text-sm lg:text-base"><Play size={16} />Модули</Button>
+            <Button variant="secondary" onClick={onOpenSandbox} className="pointer-events-auto text-sm lg:text-base"><TerminalSquare size={16} />Песочница</Button>
+            <Button variant="danger" onClick={onReset} className="pointer-events-auto text-sm lg:text-base"><RotateCcw size={16} />Сброс</Button>
           </div>
         </Card>
 
-        <Card className="p-4 md:p-6">
-          <h3 className="text-xl font-semibold text-white">Состояние обучения</h3>
-          <div className="mt-4 md:mt-6">
-            <div className="mb-2 flex items-center justify-between text-sm">
+        <Card className="pointer-events-auto p-3 lg:p-6">
+          <h3 className="text-lg lg:text-xl font-semibold text-white">Состояние обучения</h3>
+          <div className="mt-3 lg:mt-6">
+            <div className="mb-2 flex items-center justify-between text-xs lg:text-sm">
               <span className="text-slate-300">Общий прогресс</span>
               <span className="font-semibold text-teal-200">{completedPercent}%</span>
             </div>
             <Progress value={completedPercent} />
           </div>
-          <div className="mt-4 md:mt-6 space-y-2 md:space-y-3">
+          <div className="mt-3 lg:mt-6 space-y-2 lg:space-y-3">
             {modules.slice(0, 5).map((module) => {
               const status = moduleStatus(module, progress)
               return (
-                <div key={module.id} className="flex items-center justify-between gap-2 md:gap-3 rounded-md border border-slate-800 bg-slate-900/50 p-2 md:p-3">
-                  <span className="text-sm text-slate-200">{module.number}. {module.title}</span>
+                <div key={module.id} className="pointer-events-auto flex items-center justify-between gap-2 lg:gap-3 rounded-md border border-slate-800 bg-slate-900/50 p-2 lg:p-3">
+                  <span className="text-xs lg:text-sm text-slate-200">{module.number}. {module.title}</span>
                   <Badge tone={status.tone}>{status.label}</Badge>
                 </div>
               )
@@ -341,39 +343,39 @@ function Dashboard({
         </Card>
       </section>
 
-      <section className="grid gap-3 md:gap-4 md:grid-cols-1 xl:grid-cols-[0.9fr_1.1fr]">
-        <Card className="p-4 md:p-6">
-          <h3 className="text-xl font-semibold text-white">Супер-метод для новичка</h3>
-          <p className="mt-2 text-sm text-slate-400">Один цикл на каждую тему. Так знания быстрее превращаются в навык и в нормальный ответ на интервью.</p>
-          <div className="mt-4 md:mt-5 grid gap-2 md:gap-3 sm:grid-cols-2">
+      <section className="grid gap-3 lg:gap-4 grid-cols-1 lg:grid-cols-[0.9fr_1.1fr]">
+        <Card className="pointer-events-auto p-3 lg:p-6">
+          <h3 className="text-lg lg:text-xl font-semibold text-white">Супер-метод для новичка</h3>
+          <p className="mt-2 text-xs lg:text-sm text-slate-400">Один цикл на каждую тему. Так знания быстрее превращаются в навык и в нормальный ответ на интервью.</p>
+          <div className="mt-3 lg:mt-5 grid gap-2 lg:gap-3 sm:grid-cols-2">
             {learningLoop.map((item) => (
-              <div key={item.step} className="rounded-md border border-slate-800 bg-slate-900/50 p-4">
-                <p className="font-semibold text-teal-200">{item.step}</p>
-                <p className="mt-2 text-sm text-slate-300">{item.text}</p>
+              <div key={item.step} className="pointer-events-auto rounded-md border border-slate-800 bg-slate-900/50 p-2 lg:p-4">
+                <p className="text-xs lg:text-sm font-semibold text-teal-200">{item.step}</p>
+                <p className="mt-1 lg:mt-2 text-xs lg:text-sm text-slate-300">{item.text}</p>
               </div>
             ))}
           </div>
         </Card>
 
-        <Card className="p-4 md:p-6">
-          <h3 className="text-xl font-semibold text-white">Как решать любую SQL-задачу на ERP-собеседовании</h3>
-          <div className="mt-4 md:mt-5 space-y-2 md:space-y-3">
+        <Card className="pointer-events-auto p-3 lg:p-6">
+          <h3 className="text-lg lg:text-xl font-semibold text-white">Как решать любую SQL-задачу на ERP-собеседовании</h3>
+          <div className="mt-3 lg:mt-5 space-y-2 lg:space-y-3">
             {sqlThinkingSteps.map((step, index) => (
-              <div key={step} className="flex gap-3 rounded-md border border-slate-800 bg-slate-900/50 p-3">
-                <span className="grid size-7 shrink-0 place-items-center rounded-md bg-teal-400 text-sm font-bold text-slate-950">{index + 1}</span>
-                <p className="text-sm text-slate-300">{step}</p>
+              <div key={step} className="pointer-events-auto flex gap-2 lg:gap-3 rounded-md border border-slate-800 bg-slate-900/50 p-2 lg:p-3">
+                <span className="grid size-6 lg:size-7 shrink-0 place-items-center rounded-md bg-teal-400 text-xs lg:text-sm font-bold text-slate-950">{index + 1}</span>
+                <p className="text-xs lg:text-sm text-slate-300">{step}</p>
               </div>
             ))}
           </div>
         </Card>
       </section>
 
-      <section className="grid gap-2 md:gap-4 md:grid-cols-2 xl:grid-cols-4">
+      <section className="grid gap-2 lg:gap-4 grid-cols-1 md:grid-cols-2 lg:grid-cols-4">
         {['ERP-схема', 'SELECT и фильтры', 'JOIN-диагностика', 'Интервью-ответы'].map((item) => (
-          <Card key={item} className="p-3 md:p-5">
-            <CheckCircle2 className="mb-4 text-teal-300" size={22} />
-            <h3 className="font-semibold text-white">{item}</h3>
-            <p className="mt-2 text-sm text-slate-400">От синтаксиса к реальным проверкам заказов, оплат и интеграций.</p>
+          <Card key={item} className="pointer-events-auto p-3 lg:p-5">
+            <CheckCircle2 className="mb-2 lg:mb-4 text-teal-300" size={20} />
+            <h3 className="text-sm lg:text-base font-semibold text-white">{item}</h3>
+            <p className="mt-1 lg:mt-2 text-xs lg:text-sm text-slate-400">От синтаксиса к реальным проверкам заказов, оплат и интеграций.</p>
           </Card>
         ))}
       </section>
@@ -383,45 +385,45 @@ function Dashboard({
 
 function SprintView({ onOpenModules, onOpenSandbox }: { onOpenModules: () => void; onOpenSandbox: () => void }) {
   return (
-    <div className="space-y-4 md:space-y-6">
-      <section className="grid gap-4 md:gap-6 md:grid-cols-1 xl:grid-cols-[1.15fr_0.85fr]">
-        <Card className="p-4 md:p-6 md:p-8">
+    <div className="space-y-4 lg:space-y-6">
+      <section className="grid gap-4 lg:gap-6 grid-cols-1 lg:grid-cols-[1.15fr_0.85fr]">
+        <Card className="pointer-events-auto p-3 lg:p-6 lg:p-8">
           <Badge tone="teal">интенсив на 3 дня</Badge>
-          <h2 className="mt-4 text-3xl font-semibold leading-tight text-white md:text-4xl">Метод подготовки: минимум теории, максимум узнаваемых ERP-ситуаций</h2>
-          <p className="mt-4 max-w-3xl text-slate-300">
+          <h2 className="mt-3 lg:mt-4 text-2xl lg:text-3xl font-semibold leading-tight text-white lg:text-4xl">Метод подготовки: минимум теории, максимум узнаваемых ERP-ситуаций</h2>
+          <p className="mt-3 lg:mt-4 max-w-3xl text-sm lg:text-base text-slate-300">
             Цель не стать DBA за 3 дня. Цель - уверенно пройти собеседование ERP Engineer: читать схему, писать базовые запросы, находить плохие данные и объяснять ход мыслей.
           </p>
-          <div className="mt-6 flex flex-wrap gap-3">
-            <Button onClick={onOpenModules}><BookOpen size={17} />Учить модули</Button>
-            <Button variant="secondary" onClick={onOpenSandbox}><TerminalSquare size={17} />Тренироваться в SQL</Button>
+          <div className="mt-4 lg:mt-6 flex flex-wrap gap-2 lg:gap-3">
+            <Button onClick={onOpenModules} className="pointer-events-auto text-sm lg:text-base"><BookOpen size={16} />Модули</Button>
+            <Button variant="secondary" onClick={onOpenSandbox} className="pointer-events-auto text-sm lg:text-base"><TerminalSquare size={16} />SQL</Button>
           </div>
         </Card>
 
-        <Card className="p-4 md:p-6">
-          <h3 className="text-xl font-semibold text-white">Формула ответа на интервью</h3>
-          <div className="mt-4 space-y-2">
+        <Card className="pointer-events-auto p-3 lg:p-6">
+          <h3 className="text-lg lg:text-xl font-semibold text-white">Формула ответа на интервью</h3>
+          <div className="mt-3 lg:mt-4 space-y-2 lg:space-y-3">
             {interviewFormula.map((item, index) => (
-              <div key={item} className="flex gap-3 rounded-md bg-slate-900/60 p-3">
-                <span className="font-mono text-sm text-teal-300">{index + 1}</span>
-                <p className="text-sm text-slate-300">{item}</p>
+              <div key={item} className="pointer-events-auto flex gap-2 lg:gap-3 rounded-md bg-slate-900/60 p-2 lg:p-3">
+                <span className="font-mono text-xs lg:text-sm text-teal-300">{index + 1}</span>
+                <p className="text-xs lg:text-sm text-slate-300">{item}</p>
               </div>
             ))}
           </div>
         </Card>
       </section>
 
-      <section className="grid gap-2 md:gap-4 md:grid-cols-2 xl:grid-cols-3">
+      <section className="grid gap-2 lg:gap-4 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
         {threeDayPlan.map((day) => (
-          <Card key={day.day} className="p-3 md:p-6">
+          <Card key={day.day} className="pointer-events-auto p-3 lg:p-6">
             <Badge tone="blue">{day.day}</Badge>
-            <h3 className="mt-3 text-xl font-semibold text-white">{day.title}</h3>
-            <p className="mt-2 text-sm text-teal-100">{day.focus}</p>
-            <div className="mt-5 space-y-3">
+            <h3 className="mt-2 lg:mt-3 text-lg lg:text-xl font-semibold text-white">{day.title}</h3>
+            <p className="mt-2 text-xs lg:text-sm text-teal-100">{day.focus}</p>
+            <div className="mt-3 lg:mt-5 space-y-2 lg:space-y-3">
               {day.schedule.map((item) => (
-                <div key={item} className="rounded-md border border-slate-800 bg-slate-900/50 p-3 text-sm text-slate-300">{item}</div>
+                <div key={item} className="pointer-events-auto rounded-md border border-slate-800 bg-slate-900/50 p-2 lg:p-3 text-xs lg:text-sm text-slate-300">{item}</div>
               ))}
             </div>
-            <div className="mt-5 rounded-md border border-teal-400/20 bg-teal-400/10 p-4 text-sm text-teal-100">
+            <div className="mt-3 lg:mt-5 rounded-md border border-teal-400/20 bg-teal-400/10 p-2 lg:p-4 text-xs lg:text-sm text-teal-100">
               <strong>Итог дня:</strong> {day.result}
             </div>
           </Card>
