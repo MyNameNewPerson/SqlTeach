@@ -129,9 +129,9 @@ function App() {
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100">
-      <div className="flex min-h-screen">
-        <aside className="sticky top-0 hidden h-screen w-72 shrink-0 border-r border-slate-800 bg-slate-950/95 p-4 lg:block">
-          <div className="mb-6 rounded-lg border border-slate-800 bg-slate-900/60 p-4">
+      <div className="flex min-h-screen flex-col md:flex-row">
+        <aside className="sticky top-0 hidden md:block h-[60px] md:h-screen w-full md:w-64 lg:w-72 shrink-0 border-b md:border-b-0 md:border-r border-slate-800 bg-slate-950/95 p-2 md:p-4">
+          <div className="mb-4 md:mb-6 rounded-lg border border-slate-800 bg-slate-900/60 p-3 md:p-4">
             <div className="mb-3 flex items-center gap-3">
               <div className="grid size-10 place-items-center rounded-md bg-teal-400 text-slate-950">
                 <DatabaseZap size={22} />
@@ -167,19 +167,19 @@ function App() {
         </aside>
 
         <main className="min-w-0 flex-1">
-          <header className="sticky top-0 z-20 border-b border-slate-800 bg-slate-950/90 px-4 py-4 backdrop-blur xl:px-8">
-            <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
+          <header className="sticky top-0 z-20 border-b border-slate-800 bg-slate-950/90 px-2 md:px-4 py-3 md:py-4 backdrop-blur xl:px-8">
+            <div className="flex flex-col gap-3 md:gap-4 xl:flex-row xl:items-center xl:justify-between">
               <div>
                 <p className="text-xs uppercase tracking-[0.18em] text-teal-300">local interactive course</p>
-                <h1 className="mt-1 text-2xl font-semibold text-white md:text-3xl">SQL ERP Engineer Course</h1>
+                <h1 className="mt-1 text-xl md:text-2xl font-semibold text-white md:text-3xl">SQL ERP Engineer Course</h1>
               </div>
-              <div className="grid gap-3 sm:grid-cols-3">
+              <div className="grid gap-2 md:gap-3 sm:grid-cols-3">
                 <Metric label="Прогресс" value={`${completedPercent}%`} />
                 <Metric label="Тесты" value={`${averageQuiz}%`} />
                 <Metric label="Модулей" value={`${progress.completedModules.length}/${modules.length}`} />
               </div>
             </div>
-            <div className="mt-4 flex gap-2 overflow-x-auto lg:hidden">
+            <div className="mt-3 flex gap-2 overflow-x-auto md:overflow-visible lg:hidden pb-2">
               {navItems.map((item) => (
                 <Button
                   key={item.id}
@@ -194,7 +194,7 @@ function App() {
             </div>
           </header>
 
-          <div className="mx-auto max-w-7xl px-4 py-6 xl:px-8">
+          <div className="mx-auto max-w-7xl px-2 md:px-4 py-4 md:py-6 xl:px-8">
             {activeView === 'dashboard' && (
               <Dashboard
                 completedPercent={completedPercent}
@@ -286,17 +286,17 @@ function Dashboard({
   const nextModule = modules.find((module) => !progress.completedModules.includes(module.id)) ?? modules[modules.length - 1]
 
   return (
-    <div className="space-y-6">
-      <section className="grid gap-6 xl:grid-cols-[1.35fr_0.65fr]">
-        <Card className="overflow-hidden p-6 md:p-8">
-          <div className="mb-8 max-w-3xl">
+    <div className="space-y-4 md:space-y-6">
+      <section className="grid gap-4 md:gap-6 md:grid-cols-1 xl:grid-cols-[1.35fr_0.65fr]">
+        <Card className="overflow-hidden p-4 md:p-6 md:p-8">
+          <div className="mb-6 md:mb-8 max-w-3xl">
             <Badge tone="teal">3-day ERP interview sprint</Badge>
-            <h2 className="mt-4 text-4xl font-semibold leading-tight text-white md:text-5xl">SQL для ERP Engineer за 3 дня: понятно, по шагам, с практикой</h2>
-            <p className="mt-4 max-w-2xl text-lg text-slate-300">
+            <h2 className="mt-4 text-2xl md:text-4xl font-semibold leading-tight text-white md:text-5xl">SQL для ERP Engineer за 3 дня: понятно, по шагам, с практикой</h2>
+            <p className="mt-3 md:mt-4 max-w-2xl text-base md:text-lg text-slate-300">
               Не зубрим команды отдельно. Учимся думать как ERP-инженер: понять проблему, выбрать таблицы, написать запрос, объяснить вывод на собеседовании.
             </p>
           </div>
-          <div className="grid gap-4 md:grid-cols-3">
+          <div className="grid gap-3 md:gap-4 md:grid-cols-3">
             <Card className="p-4">
               <p className="text-sm text-slate-400">Следующий модуль</p>
               <p className="mt-2 font-semibold text-white">{nextModule.number}. {nextModule.title}</p>
@@ -310,7 +310,7 @@ function Dashboard({
               <p className="mt-2 font-semibold text-white">Локально, без сервера</p>
             </Card>
           </div>
-          <div className="mt-6 flex flex-wrap gap-3">
+          <div className="mt-4 md:mt-6 flex flex-wrap gap-2 md:gap-3">
             <Button onClick={onOpenSprint}><CalendarDays size={17} />Открыть план на 3 дня</Button>
             <Button variant="secondary" onClick={onOpenModules}><Play size={17} />Начать модуль</Button>
             <Button variant="secondary" onClick={onOpenSandbox}><TerminalSquare size={17} />SQL-песочница</Button>
@@ -318,20 +318,20 @@ function Dashboard({
           </div>
         </Card>
 
-        <Card className="p-6">
+        <Card className="p-4 md:p-6">
           <h3 className="text-xl font-semibold text-white">Состояние обучения</h3>
-          <div className="mt-6">
+          <div className="mt-4 md:mt-6">
             <div className="mb-2 flex items-center justify-between text-sm">
               <span className="text-slate-300">Общий прогресс</span>
               <span className="font-semibold text-teal-200">{completedPercent}%</span>
             </div>
             <Progress value={completedPercent} />
           </div>
-          <div className="mt-6 space-y-3">
+          <div className="mt-4 md:mt-6 space-y-2 md:space-y-3">
             {modules.slice(0, 5).map((module) => {
               const status = moduleStatus(module, progress)
               return (
-                <div key={module.id} className="flex items-center justify-between gap-3 rounded-md border border-slate-800 bg-slate-900/50 p-3">
+                <div key={module.id} className="flex items-center justify-between gap-2 md:gap-3 rounded-md border border-slate-800 bg-slate-900/50 p-2 md:p-3">
                   <span className="text-sm text-slate-200">{module.number}. {module.title}</span>
                   <Badge tone={status.tone}>{status.label}</Badge>
                 </div>
@@ -341,11 +341,11 @@ function Dashboard({
         </Card>
       </section>
 
-      <section className="grid gap-4 xl:grid-cols-[0.9fr_1.1fr]">
-        <Card className="p-6">
+      <section className="grid gap-3 md:gap-4 md:grid-cols-1 xl:grid-cols-[0.9fr_1.1fr]">
+        <Card className="p-4 md:p-6">
           <h3 className="text-xl font-semibold text-white">Супер-метод для новичка</h3>
           <p className="mt-2 text-sm text-slate-400">Один цикл на каждую тему. Так знания быстрее превращаются в навык и в нормальный ответ на интервью.</p>
-          <div className="mt-5 grid gap-3 sm:grid-cols-2">
+          <div className="mt-4 md:mt-5 grid gap-2 md:gap-3 sm:grid-cols-2">
             {learningLoop.map((item) => (
               <div key={item.step} className="rounded-md border border-slate-800 bg-slate-900/50 p-4">
                 <p className="font-semibold text-teal-200">{item.step}</p>
@@ -355,9 +355,9 @@ function Dashboard({
           </div>
         </Card>
 
-        <Card className="p-6">
+        <Card className="p-4 md:p-6">
           <h3 className="text-xl font-semibold text-white">Как решать любую SQL-задачу на ERP-собеседовании</h3>
-          <div className="mt-5 space-y-3">
+          <div className="mt-4 md:mt-5 space-y-2 md:space-y-3">
             {sqlThinkingSteps.map((step, index) => (
               <div key={step} className="flex gap-3 rounded-md border border-slate-800 bg-slate-900/50 p-3">
                 <span className="grid size-7 shrink-0 place-items-center rounded-md bg-teal-400 text-sm font-bold text-slate-950">{index + 1}</span>
@@ -368,9 +368,9 @@ function Dashboard({
         </Card>
       </section>
 
-      <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+      <section className="grid gap-2 md:gap-4 md:grid-cols-2 xl:grid-cols-4">
         {['ERP-схема', 'SELECT и фильтры', 'JOIN-диагностика', 'Интервью-ответы'].map((item) => (
-          <Card key={item} className="p-5">
+          <Card key={item} className="p-3 md:p-5">
             <CheckCircle2 className="mb-4 text-teal-300" size={22} />
             <h3 className="font-semibold text-white">{item}</h3>
             <p className="mt-2 text-sm text-slate-400">От синтаксиса к реальным проверкам заказов, оплат и интеграций.</p>
@@ -383,9 +383,9 @@ function Dashboard({
 
 function SprintView({ onOpenModules, onOpenSandbox }: { onOpenModules: () => void; onOpenSandbox: () => void }) {
   return (
-    <div className="space-y-6">
-      <section className="grid gap-6 xl:grid-cols-[1.15fr_0.85fr]">
-        <Card className="p-6 md:p-8">
+    <div className="space-y-4 md:space-y-6">
+      <section className="grid gap-4 md:gap-6 md:grid-cols-1 xl:grid-cols-[1.15fr_0.85fr]">
+        <Card className="p-4 md:p-6 md:p-8">
           <Badge tone="teal">интенсив на 3 дня</Badge>
           <h2 className="mt-4 text-3xl font-semibold leading-tight text-white md:text-4xl">Метод подготовки: минимум теории, максимум узнаваемых ERP-ситуаций</h2>
           <p className="mt-4 max-w-3xl text-slate-300">
@@ -397,7 +397,7 @@ function SprintView({ onOpenModules, onOpenSandbox }: { onOpenModules: () => voi
           </div>
         </Card>
 
-        <Card className="p-6">
+        <Card className="p-4 md:p-6">
           <h3 className="text-xl font-semibold text-white">Формула ответа на интервью</h3>
           <div className="mt-4 space-y-2">
             {interviewFormula.map((item, index) => (
@@ -410,9 +410,9 @@ function SprintView({ onOpenModules, onOpenSandbox }: { onOpenModules: () => voi
         </Card>
       </section>
 
-      <section className="grid gap-4 xl:grid-cols-3">
+      <section className="grid gap-2 md:gap-4 md:grid-cols-2 xl:grid-cols-3">
         {threeDayPlan.map((day) => (
-          <Card key={day.day} className="p-6">
+          <Card key={day.day} className="p-3 md:p-6">
             <Badge tone="blue">{day.day}</Badge>
             <h3 className="mt-3 text-xl font-semibold text-white">{day.title}</h3>
             <p className="mt-2 text-sm text-teal-100">{day.focus}</p>
