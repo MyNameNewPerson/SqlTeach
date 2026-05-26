@@ -19,6 +19,8 @@ import {
   TerminalSquare,
   Trophy,
 } from 'lucide-react'
+import { conceptExplanations, moduleConcepts } from './data/concepts'
+import type { ConceptExplanation, ConceptTable } from './data/concepts'
 import { erpCases, finalExam, interviewPrompts, modules, sqlReference } from './data/course'
 import { firstSqlStory, relationshipSteps, tableAnatomy, visualTables } from './data/foundation'
 import { beginnerGlossary, interviewCoverage, memoryMethod, recallCards, sourceTakeaways, syntaxDictionary, workedExamples } from './data/learning'
@@ -444,7 +446,7 @@ function FoundationPrimer({ compact = false }: { compact?: boolean }) {
   return (
     <section className="space-y-4 md:space-y-6">
       <Card className="p-4 md:p-6">
-        <div className="grid gap-6 xl:grid-cols-[0.72fr_1.28fr]">
+        <div className="grid gap-6 2xl:grid-cols-[0.72fr_1.28fr]">
           <div>
             <Badge tone="teal">старт с нуля</Badge>
             <h3 className="mt-3 text-2xl font-semibold text-white md:text-3xl">Сначала видим таблицы, потом пишем SQL</h3>
@@ -465,7 +467,7 @@ function FoundationPrimer({ compact = false }: { compact?: boolean }) {
           <div className="space-y-4">
             <VisualDataTable table={visualTables[0]} focus="customers" />
             {!compact && (
-              <div className="grid gap-4 lg:grid-cols-2">
+              <div className="grid gap-4 2xl:grid-cols-2">
                 <VisualDataTable table={visualTables[1]} focus="orders" />
                 <VisualDataTable table={visualTables[2]} focus="payments" />
               </div>
@@ -474,7 +476,7 @@ function FoundationPrimer({ compact = false }: { compact?: boolean }) {
         </div>
       </Card>
 
-      <div className="grid gap-4 xl:grid-cols-[1.1fr_0.9fr]">
+      <div className="grid gap-4 2xl:grid-cols-[1.1fr_0.9fr]">
         <Card className="p-4 md:p-6">
           <h3 className="text-xl font-semibold text-white">Как таблицы разговаривают друг с другом</h3>
           <p className="mt-2 text-sm text-slate-400">Связь строится не по имени клиента, а по числовым id. Так ERP не путается, если название клиента изменится.</p>
@@ -878,10 +880,11 @@ function ModulesView({
   onQuizScore: (moduleId: string, score: number) => void
 }) {
   const status = moduleStatus(activeModule, progress)
+  const concepts = (moduleConcepts[activeModule.id] ?? []).map((id) => conceptExplanations[id]).filter(Boolean)
 
   return (
-    <div className="grid gap-6 xl:grid-cols-[320px_1fr]">
-      <Card className="grid h-fit gap-2 p-3 sm:grid-cols-2 lg:grid-cols-3 xl:block">
+    <div className="grid gap-6 xl:grid-cols-[300px_minmax(0,1fr)]">
+      <Card className="grid h-fit gap-2 p-3 sm:grid-cols-2 lg:grid-cols-3 xl:sticky xl:top-28 xl:block">
         {modules.map((module) => {
           const itemStatus = moduleStatus(module, progress)
           return (
@@ -895,16 +898,21 @@ function ModulesView({
               )}
             >
               <div className="flex items-center justify-between gap-3">
-                <span className="text-sm font-semibold text-white">{module.number}. {module.title}</span>
-                <Badge tone={itemStatus.tone}>{itemStatus.label}</Badge>
+                <span className="min-w-0 text-sm font-semibold text-white">{module.number}. {module.title}</span>
+                <span className={cn(
+                  'size-2.5 shrink-0 rounded-full',
+                  itemStatus.tone === 'teal' && 'bg-teal-300',
+                  itemStatus.tone === 'amber' && 'bg-amber-300',
+                  itemStatus.tone === 'slate' && 'bg-slate-600',
+                )} />
               </div>
-              <p className="mt-2 text-xs text-slate-400">{module.level}</p>
+              <p className="mt-2 text-xs text-slate-400">{module.level} · {itemStatus.label}</p>
             </button>
           )
         })}
       </Card>
 
-      <div className="space-y-6">
+      <div className="mx-auto w-full max-w-6xl space-y-6">
         <Card className="p-6">
           <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
             <div>
@@ -936,6 +944,8 @@ function ModulesView({
 
         {activeModule.number === 0 && <FoundationPrimer />}
 
+        <ConceptExplanationSection concepts={concepts} />
+
         <WorkedExampleCard example={workedExamples[activeModule.id]} />
 
         {activeModule.lessons.map((lesson) => (
@@ -960,6 +970,127 @@ function ModulesView({
         <QuizCard key={activeModule.id} module={activeModule} savedScore={progress.quizScores[activeModule.id]} onScore={onQuizScore} />
         <TaskCard title={`Мини-задание: ${activeModule.task.title}`} prompt={activeModule.task.prompt} sql={activeModule.task.starterSql} hint={activeModule.task.expectedHint} />
       </div>
+    </div>
+  )
+}
+
+function ConceptExplanationSection({ concepts }: { concepts: ConceptExplanation[] }) {
+  if (!concepts.length) return null
+
+  return (
+    <Card className="p-5 md:p-6">
+      <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+        <div>
+          <Badge tone="teal">главное объяснение</Badge>
+          <h3 className="mt-3 text-2xl font-semibold text-white">Понятно и по делу: что означает тема</h3>
+          <p className="mt-2 text-sm text-slate-400">
+            Формат как в хорошем ответе наставника: коротко, пример из жизни, мини-таблицы, SQL, разбор по кускам и типичная ошибка.
+          </p>
+        </div>
+        <Badge tone="blue">{concepts.length} тем</Badge>
+      </div>
+      <div className="mt-5 space-y-4">
+        {concepts.map((concept, index) => (
+          <ConceptExplanationCard key={concept.id} concept={concept} defaultOpen={index === 0} />
+        ))}
+      </div>
+    </Card>
+  )
+}
+
+function ConceptExplanationCard({ concept, defaultOpen }: { concept: ConceptExplanation; defaultOpen?: boolean }) {
+  return (
+    <details open={defaultOpen} className="rounded-lg border border-slate-800 bg-slate-900/45">
+      <summary className="cursor-pointer p-4 marker:text-teal-300">
+        <span className="ml-2 text-lg font-semibold text-white">{concept.title}</span>
+        <span className="ml-3 text-sm text-slate-400">{concept.short}</span>
+      </summary>
+      <div className="border-t border-slate-800 p-4 md:p-5">
+        <div className="grid gap-4 xl:grid-cols-[0.95fr_1.05fr]">
+          <div className="space-y-4">
+            <InfoStrip title="Простая аналогия" text={concept.analogy} tone="teal" />
+            <InfoStrip title="ERP-пример" text={concept.erpExample} tone="blue" />
+            <InfoStrip title="Частая ошибка" text={concept.commonMistake} tone="amber" />
+            <InfoStrip title="Запомнить" text={concept.remember} tone="slate" />
+          </div>
+          <div className="space-y-4">
+            {concept.tables && (
+              <div className="grid gap-3 md:grid-cols-2">
+                {concept.tables.map((table) => <ConceptMiniTable key={table.title} table={table} />)}
+              </div>
+            )}
+            {concept.arrows && (
+              <div className="rounded-md border border-slate-800 bg-slate-950/70 p-4">
+                <p className="text-sm font-semibold text-white">Связь визуально</p>
+                <div className="mt-3 space-y-2">
+                  {concept.arrows.map((arrow) => (
+                    <p key={arrow} className="font-mono text-sm text-teal-200">{arrow}</p>
+                  ))}
+                </div>
+              </div>
+            )}
+            {concept.sql && <SqlCode>{concept.sql}</SqlCode>}
+          </div>
+        </div>
+
+        <div className="mt-5">
+          <p className="text-sm font-semibold text-white">Разбираем по частям</p>
+          <div className="mt-3 grid gap-3 md:grid-cols-2">
+            {concept.breakdown.map((item) => (
+              <div key={`${concept.id}-${item.part}`} className="rounded-md border border-slate-800 bg-slate-950/65 p-3">
+                <p className="font-mono text-sm text-teal-200">{item.part}</p>
+                <p className="mt-2 text-sm text-slate-300">{item.meaning}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </details>
+  )
+}
+
+function ConceptMiniTable({ table }: { table: ConceptTable }) {
+  return (
+    <div className="overflow-hidden rounded-md border border-slate-800 bg-slate-950">
+      <div className="border-b border-slate-800 bg-slate-900 px-3 py-2">
+        <p className="font-mono text-sm font-semibold text-teal-200">{table.title}</p>
+      </div>
+      <div className="overflow-x-auto">
+        <table className="w-full min-w-[280px] text-left text-xs">
+          <thead>
+            <tr>
+              {table.columns.map((column) => (
+                <th key={column} className="border-b border-slate-800 px-3 py-2 font-mono uppercase text-slate-400">{column}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {table.rows.map((row, rowIndex) => (
+              <tr key={`${table.title}-${rowIndex}`} className="odd:bg-slate-950 even:bg-slate-900/45">
+                {row.map((cell, cellIndex) => (
+                  <td key={`${table.title}-${rowIndex}-${cellIndex}`} className="border-b border-slate-800 px-3 py-2 text-slate-300">{cell}</td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  )
+}
+
+function InfoStrip({ title, text, tone }: { title: string; text: string; tone: 'teal' | 'blue' | 'amber' | 'slate' }) {
+  const tones = {
+    teal: 'border-teal-400/20 bg-teal-400/10 text-teal-100',
+    blue: 'border-sky-400/20 bg-sky-400/10 text-sky-100',
+    amber: 'border-amber-400/20 bg-amber-400/10 text-amber-100',
+    slate: 'border-slate-700 bg-slate-950/70 text-slate-300',
+  }
+
+  return (
+    <div className={cn('rounded-md border p-3 text-sm', tones[tone])}>
+      <p className="font-semibold text-white">{title}</p>
+      <p className="mt-2">{text}</p>
     </div>
   )
 }
