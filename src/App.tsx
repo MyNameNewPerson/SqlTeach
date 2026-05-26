@@ -17,10 +17,13 @@ import {
 } from 'lucide-react'
 import { conceptExplanations, moduleConcepts } from './data/concepts'
 import type { ConceptExplanation, ConceptTable } from './data/concepts'
-import { erpCases, finalExam, interviewPrompts, modules, sqlReference } from './data/course'
-import { firstSqlStory, relationshipSteps, tableAnatomy, tableRelations, visualTables } from './data/foundation'
+import { erpCases, finalExam, interviewPrompts, modules, sqlReference } from './data/courseModules'
+import { beginnerMistakes, erpInterviewCases, interviewShortAnswers, interviewStrongAnswers, sqlToolCheatsheet } from './data/interviewQuestions'
+import { sqlTasks, type SqlTask } from './data/sqlTasks'
+import { tableRelations, visualTables } from './data/erpSchema'
+import type { VisualTable } from './data/erpSchema'
+import { firstSqlStory, relationshipSteps, tableAnatomy } from './data/foundation'
 import { beginnerGlossary, interviewCoverage, memoryMethod, recallCards, sourceTakeaways, syntaxDictionary, workedExamples } from './data/learning'
-import type { VisualTable } from './data/foundation'
 import type { WorkedExample } from './data/learning'
 import { schemaSummary, seedSql } from './lib/sqlSeed'
 import { defaultProgress, loadProgress, resetStoredProgress, saveProgress } from './lib/storage'
@@ -1897,6 +1900,259 @@ function RelationsView() {
   )
 }
 
+type ModuleTrainingPack = {
+  businessProblem: string
+  analogy: string
+  miniTables: Array<{ name: string; columns: string[]; rows: Array<Record<string, string | number | null>> }>
+  query: string
+  steps: string[]
+  resultColumns: string[]
+  resultRows: Array<Record<string, string | number | null>>
+  wrongQuery: string
+  whyWrong: string
+  interviewShort: string
+  interviewStrong: string
+  practice: string[]
+  checklist: string[]
+  mistakes: string[]
+}
+
+const moduleTrainingPacks: Record<string, ModuleTrainingPack> = {
+  'module-0': {
+    businessProblem: 'Клиент говорит: "я оплатил заказ, но товар не отгрузили". До SQL нужно понять, какие факты вообще живут в ERP: заказ, платёж, invoice, shipment, остатки и логи.',
+    analogy: 'Это похоже на медицинскую карту: симптом один, но врач смотрит анализы, историю и назначения. ERP-инженер так же смотрит разные таблицы, а не одну огромную строку.',
+    miniTables: [
+      { name: 'orders', columns: ['id', 'customer_id', 'status'], rows: [{ id: 1007, customer_id: 5, status: 'paid' }, { id: 1008, customer_id: 2, status: 'paid' }] },
+      { name: 'payments', columns: ['order_id', 'status'], rows: [{ order_id: 1007, status: 'captured' }, { order_id: 1008, status: 'captured' }] },
+      { name: 'shipments', columns: ['order_id', 'status'], rows: [{ order_id: 1001, status: 'shipped' }, { order_id: 1010, status: 'pending' }] },
+    ],
+    query: `SELECT id, customer_id, status, total_amount
+FROM orders
+WHERE id = 1007;`,
+    steps: ['orders - главная таблица, потому что расследуем заказ.', 'id = 1007 оставляет одну строку.', 'customer_id подсказывает, какого клиента проверить дальше.', 'status и total_amount дают первый бизнес-контекст.'],
+    resultColumns: ['id', 'customer_id', 'status', 'total_amount'],
+    resultRows: [{ id: 1007, customer_id: 5, status: 'paid', total_amount: 780 }],
+    wrongQuery: `SELECT *
+FROM payments
+WHERE order_id = 1007;`,
+    whyWrong: 'Платёж важен, но если начать только с payments, ты не увидишь статус заказа, клиента, источник и сумму заказа. В расследовании сначала выбирают главную сущность.',
+    interviewShort: 'Я начинаю с главной таблицы процесса, чаще всего orders, и дальше проверяю связанные факты.',
+    interviewStrong: 'Если клиент говорит про заказ, я сначала нахожу orders по id, потом проверяю payments, invoices, shipments, inventory и integration_logs. Так я не путаю симптом с причиной.',
+    practice: ['Найди заказ 1004.', 'Измени id на 1008 и сравни статус.', 'Скажи вслух, какие таблицы ты проверишь после orders.'],
+    checklist: ['Понимаю, что такое таблица, строка, колонка и ячейка.', 'Понимаю главную сущность расследования.', 'Понимаю, зачем ERP разделяет данные по таблицам.'],
+    mistakes: ['Искать всё в одной таблице.', 'Путать заказ и платёж.', 'Смотреть имя клиента вместо customer_id.'],
+  },
+  'module-1': {
+    businessProblem: 'Нужно быстро найти нужные строки: заказ по id, клиента по email, ошибки интеграции за дату, API-заказы в статусе new.',
+    analogy: 'SELECT/WHERE - это как фильтр в Excel: сначала выбираешь лист, потом оставляешь только нужные строки.',
+    miniTables: [
+      { name: 'orders', columns: ['id', 'status', 'created_at', 'source'], rows: [{ id: 1004, status: 'payment_pending', created_at: '2026-02-10', source: 'api' }, { id: 1009, status: 'new', created_at: '2026-02-14', source: 'api' }] },
+      { name: 'integration_logs', columns: ['id', 'status', 'created_at'], rows: [{ id: 3001, status: 'error', created_at: '2026-05-26 09:00:00' }, { id: 3005, status: 'success', created_at: '2026-02-01 10:00:00' }] },
+    ],
+    query: `SELECT id, status, created_at, source
+FROM orders
+WHERE source = 'api'
+  AND status = 'new'
+ORDER BY created_at DESC
+LIMIT 10;`,
+    steps: ['FROM orders выбирает журнал заказов.', "source = 'api' оставляет заказы из API.", "status = 'new' ищет зависшие новые заказы.", 'ORDER BY показывает свежие сверху.', 'LIMIT защищает от огромного вывода.'],
+    resultColumns: ['id', 'status', 'created_at', 'source'],
+    resultRows: [{ id: 1009, status: 'new', created_at: '2026-02-14', source: 'api' }],
+    wrongQuery: `SELECT *
+FROM orders;`,
+    whyWrong: 'Без WHERE ты получаешь весь шум. SELECT * показывает лишние поля и не объясняет, какую проблему ты проверяешь.',
+    interviewShort: 'WHERE сужает расследование до нужных строк.',
+    interviewStrong: 'Я выбираю только нужные колонки и ставлю фильтры по id, статусу, дате или source, чтобы не читать всю таблицу и быстрее найти симптом.',
+    practice: ['Найди клиента по email ops@delta.md.', 'Найди ошибки integration_logs за 2026-05-26.', 'Найди заказы marketplace и отсортируй их по дате.'],
+    checklist: ['Умею SELECT нужные колонки.', 'Умею WHERE, AND, IN, BETWEEN.', 'Понимаю риск SELECT *.'],
+    mistakes: ['Фильтровать число в кавычках.', 'Забыть кавычки вокруг текста.', 'Не ставить ORDER BY для свежих событий.'],
+  },
+  'module-2': {
+    businessProblem: 'Данные заказа разбросаны: клиент в customers, товары в order_items/products, оплаты в payments. Нужно собрать картину и не потерять проблемные строки.',
+    analogy: 'JOIN похож на сбор папки дела: заказ - обложка, клиент - контакт, платежи - чеки, товары - вложения.',
+    miniTables: [
+      { name: 'orders', columns: ['id', 'customer_id', 'status'], rows: [{ id: 1006, customer_id: 999, status: 'paid' }, { id: 1007, customer_id: 5, status: 'paid' }] },
+      { name: 'customers', columns: ['id', 'name'], rows: [{ id: 5, name: 'Delta Shop' }, { id: 7, name: 'No Orders LLC' }] },
+      { name: 'order_items', columns: ['order_id', 'product_id'], rows: [{ order_id: 1007, product_id: 2 }, { order_id: 1007, product_id: 6 }] },
+    ],
+    query: `SELECT o.id, o.status, c.name AS customer_name
+FROM orders o
+LEFT JOIN customers c ON c.id = o.customer_id
+WHERE c.id IS NULL;`,
+    steps: ['orders o - главная таблица, потому что ищем заказы.', 'LEFT JOIN customers сохраняет все заказы.', 'c.id = o.customer_id связывает клиента и заказ.', 'WHERE c.id IS NULL оставляет заказы без найденного клиента.'],
+    resultColumns: ['id', 'status', 'customer_name'],
+    resultRows: [{ id: 1005, status: 'new', customer_name: null }, { id: 1006, status: 'paid', customer_name: null }],
+    wrongQuery: `SELECT o.id, c.name
+FROM orders o
+JOIN customers c ON c.id = o.customer_id;`,
+    whyWrong: 'INNER JOIN скрывает строки без клиента. Для диагностики orphan records это опасно: проблема исчезает из результата.',
+    interviewShort: 'LEFT JOIN нужен, когда нельзя потерять строки из главной таблицы.',
+    interviewStrong: 'В ERP-диагностике я часто начинаю с LEFT JOIN, потому что отсутствие связанной строки само по себе является проблемой.',
+    practice: ['Покажи все заказы с именем клиента.', 'Найди orders без customers.', 'Соедини orders -> order_items -> products и посмотри размножение строк.'],
+    checklist: ['Понимаю PK/FK.', 'Понимаю one-to-many.', 'Понимаю INNER vs LEFT JOIN.'],
+    mistakes: ['INNER JOIN скрывает проблемы.', 'Забыть ON.', 'Суммировать total_amount после one-to-many JOIN.'],
+  },
+  'module-3': {
+    businessProblem: 'Нужно не просто смотреть строки, а считать: продажи по клиентам, количество заказов по статусам, клиенты с несколькими заказами.',
+    analogy: 'GROUP BY - это сводная таблица: сначала складываем строки в корзины, потом считаем внутри каждой корзины.',
+    miniTables: [
+      { name: 'orders', columns: ['id', 'customer_id', 'status', 'total_amount'], rows: [{ id: 1001, customer_id: 1, status: 'paid', total_amount: 990 }, { id: 1003, customer_id: 1, status: 'shipped', total_amount: 246 }, { id: 1008, customer_id: 2, status: 'paid', total_amount: 1200 }] },
+    ],
+    query: `SELECT customer_id, COUNT(*) AS orders_count, SUM(total_amount) AS total_revenue
+FROM orders
+WHERE status IN ('paid', 'shipped')
+GROUP BY customer_id
+HAVING COUNT(*) >= 1;`,
+    steps: ['WHERE оставляет статусы, которые считаем продажами.', 'GROUP BY customer_id собирает заказы клиента в группу.', 'COUNT считает заказы.', 'SUM считает сумму по группе.', 'HAVING фильтрует уже посчитанные группы.'],
+    resultColumns: ['customer_id', 'orders_count', 'total_revenue'],
+    resultRows: [{ customer_id: 1, orders_count: 2, total_revenue: 1236 }, { customer_id: 2, orders_count: 1, total_revenue: 1200 }, { customer_id: 5, orders_count: 1, total_revenue: 780 }],
+    wrongQuery: `SELECT o.customer_id, SUM(o.total_amount)
+FROM orders o
+JOIN order_items oi ON oi.order_id = o.id
+GROUP BY o.customer_id;`,
+    whyWrong: 'order_items - one-to-many. Если заказ имеет две позиции, total_amount повторится дважды и сумма будет завышена.',
+    interviewShort: 'GROUP BY нужен для расчётов по группам, HAVING - для фильтра групп.',
+    interviewStrong: 'Перед агрегацией я проверяю кардинальность JOIN, потому что one-to-many может размножить строки и испортить финансовую сумму.',
+    practice: ['Посчитай заказы по status.', 'Найди клиентов с 2+ заказами.', 'Посчитай reserved по product_id.'],
+    checklist: ['Различаю WHERE и HAVING.', 'Понимаю COUNT/SUM.', 'Проверяю размножение строк.'],
+    mistakes: ['Неагрегированная колонка без GROUP BY.', 'SUM после one-to-many JOIN.', 'HAVING вместо WHERE для обычных строк.'],
+  },
+  'module-4': {
+    businessProblem: 'Отчёты и интеграции ломаются, когда в важных полях пусто: город клиента, tracking_number, message в логе.',
+    analogy: 'NULL - это не ноль и не пустая строка, а неизвестное значение. Как незаполненное поле в анкете.',
+    miniTables: [
+      { name: 'customers', columns: ['id', 'name', 'city'], rows: [{ id: 4, name: 'Dormant Partner', city: null }, { id: 8, name: 'API Buyer', city: null }] },
+      { name: 'shipments', columns: ['order_id', 'status', 'tracking_number'], rows: [{ order_id: 1010, status: 'pending', tracking_number: null }] },
+    ],
+    query: `SELECT id, name, COALESCE(city, 'город не указан') AS city_for_report
+FROM customers
+WHERE city IS NULL;`,
+    steps: ['IS NULL находит отсутствующий город.', 'COALESCE меняет отображение NULL в отчёте.', 'Оригинальные данные от этого не исправляются.', 'Такой вывод понятнее бизнесу.'],
+    resultColumns: ['id', 'name', 'city_for_report'],
+    resultRows: [{ id: 4, name: 'Dormant Partner', city_for_report: 'город не указан' }, { id: 8, name: 'API Buyer', city_for_report: 'город не указан' }],
+    wrongQuery: `SELECT id, name
+FROM customers
+WHERE city = NULL;`,
+    whyWrong: 'NULL нельзя сравнивать через =. Для него нужны IS NULL и IS NOT NULL.',
+    interviewShort: 'NULL ищется через IS NULL, а COALESCE помогает красиво показать запасное значение.',
+    interviewStrong: 'Я различаю исправление данных и отображение: COALESCE полезен для отчёта, но если city обязательный, нужно отдельно чинить источник NULL.',
+    practice: ['Найди shipments без tracking_number.', 'Покажи integration_logs, где message IS NULL.', 'Собери список уникальных source из orders.'],
+    checklist: ['Понимаю NULL.', 'Умею COALESCE.', 'Не прячу проблему DISTINCT.'],
+    mistakes: ['city = NULL.', 'Считать NULL равным 0.', 'DISTINCT вместо диагностики дублей.'],
+  },
+  'module-5': {
+    businessProblem: 'Нужно проверять наличие или отсутствие связанных фактов: есть ли успешная оплата, есть ли invoice, есть ли shipment, есть ли остаток.',
+    analogy: 'Подзапрос - это вопрос внутри вопроса. Внешний вопрос: какие заказы показать? Внутренний: есть ли у текущего заказа captured payment?',
+    miniTables: [
+      { name: 'orders', columns: ['id', 'status', 'total_amount'], rows: [{ id: 1004, status: 'payment_pending', total_amount: 780 }, { id: 1007, status: 'paid', total_amount: 780 }, { id: 1008, status: 'paid', total_amount: 1200 }] },
+      { name: 'payments', columns: ['order_id', 'status', 'amount'], rows: [{ order_id: 1004, status: 'failed', amount: 780 }, { order_id: 1007, status: 'failed', amount: 780 }, { order_id: 1007, status: 'captured', amount: 780 }, { order_id: 1008, status: 'captured', amount: 1200 }] },
+    ],
+    query: `SELECT o.id, o.status, o.total_amount
+FROM orders o
+WHERE NOT EXISTS (
+  SELECT 1
+  FROM payments p
+  WHERE p.order_id = o.id
+    AND p.status = 'captured'
+);`,
+    steps: ['Внешний запрос идёт по orders.', 'Внутренний запрос ищет captured payment для текущего заказа.', 'p.order_id = o.id связывает платеж с текущей строкой orders.', "p.status = 'captured' проверяет именно успешную оплату.", 'NOT EXISTS оставляет заказ, если успешный платеж не найден.', 'SELECT 1 означает: важен факт строки, а не данные платежа.'],
+    resultColumns: ['id', 'status', 'total_amount'],
+    resultRows: [{ id: 1002, status: 'new', total_amount: 1200 }, { id: 1004, status: 'payment_pending', total_amount: 780 }, { id: 1005, status: 'new', total_amount: 450 }, { id: 1009, status: 'new', total_amount: 18 }],
+    wrongQuery: `SELECT o.id, o.status
+FROM orders o
+JOIN payments p ON p.order_id = o.id
+WHERE p.status != 'captured';`,
+    whyWrong: 'Заказ 1007 имеет failed и captured payment. Неправильный JOIN увидит failed строку и ошибочно вернёт заказ, хотя успешная оплата есть.',
+    interviewShort: 'NOT EXISTS я использую, когда нужно найти главные записи, для которых нет связанного факта.',
+    interviewStrong: 'В ERP я начинаю от orders и проверяю отсутствие captured payment через NOT EXISTS, потому что платежей может быть несколько. Корреляция p.order_id = o.id связывает внутренний запрос с текущим заказом, а SELECT 1 показывает, что важен факт найденной строки.',
+    practice: ['Повтори запрос без successful payment.', 'Измени условие на invoices и найди paid orders без invoice.', 'Сам найди products, которые никогда не продавались.'],
+    checklist: ['Понимаю внешний и внутренний запрос.', 'Умею связывать подзапрос с текущей строкой.', 'Понимаю SELECT 1.', 'Умею искать отсутствующие факты.', 'Могу объяснить NOT EXISTS на собеседовании.'],
+    mistakes: ['JOIN + status != captured.', 'Забыть p.order_id = o.id.', 'Использовать NOT IN с NULL.'],
+  },
+  'module-6': {
+    businessProblem: 'Инженеру нужно менять данные без риска: обновить shipment, закрыть integration_log, записать audit_log и уметь откатиться.',
+    analogy: 'Транзакция - это черновик перед отправкой письма: можно проверить, а если ошибся, не отправлять.',
+    miniTables: [
+      { name: 'integration_logs', columns: ['id', 'status', 'message'], rows: [{ id: 3001, status: 'error', message: 'Order stuck in new status' }] },
+      { name: 'audit_log', columns: ['id', 'entity_type', 'action'], rows: [{ id: 4003, entity_type: 'integration_log', action: 'marked_for_retry' }] },
+    ],
+    query: `SELECT id, status, message
+FROM integration_logs
+WHERE id = 3001;
+
+BEGIN;
+UPDATE integration_logs
+SET status = 'resolved'
+WHERE id = 3001;
+ROLLBACK;`,
+    steps: ['SELECT проверяет точную строку.', 'BEGIN открывает транзакцию.', 'UPDATE меняет только строку с id = 3001.', 'ROLLBACK откатывает учебное изменение.', 'В реальной работе после проверки был бы COMMIT.'],
+    resultColumns: ['id', 'status', 'message'],
+    resultRows: [{ id: 3001, status: 'error', message: 'Order stuck in new status' }],
+    wrongQuery: `UPDATE integration_logs
+SET status = 'resolved';`,
+    whyWrong: 'Нет WHERE. Такой запрос обновит все логи, а не одну ошибку.',
+    interviewShort: 'Перед UPDATE я делаю SELECT-проверку и работаю в транзакции.',
+    interviewStrong: 'Мой безопасный шаблон: SELECT с тем же WHERE, BEGIN, UPDATE, проверка количества строк и результата, затем COMMIT или ROLLBACK.',
+    practice: ['Проверь shipment 803 перед UPDATE.', 'Напиши UPDATE с WHERE id = 803.', 'Добавь INSERT в audit_log внутри транзакции.'],
+    checklist: ['Понимаю INSERT/UPDATE/DELETE.', 'Не пишу UPDATE без WHERE.', 'Умею BEGIN/COMMIT/ROLLBACK.'],
+    mistakes: ['UPDATE без WHERE.', 'COMMIT без проверки.', 'DELETE вместо мягкого статуса.'],
+  },
+  'module-7': {
+    businessProblem: 'ERP-инженер должен находить реальные расхождения: paid без captured, paid без invoice, invoice mismatch, reserved > available, дубли email и transaction_id.',
+    analogy: 'Диагностика ERP похожа на чек-лист перед вылетом: заказ, оплата, документ, склад, лог - каждый пункт должен совпадать.',
+    miniTables: [
+      { name: 'orders', columns: ['id', 'status', 'total_amount'], rows: [{ id: 1006, status: 'paid', total_amount: 210 }, { id: 1007, status: 'paid', total_amount: 780 }, { id: 1008, status: 'paid', total_amount: 1200 }] },
+      { name: 'invoices', columns: ['order_id', 'amount'], rows: [{ order_id: 1007, amount: 700 }, { order_id: 1010, amount: 210 }] },
+      { name: 'inventory', columns: ['product_id', 'quantity_available', 'quantity_reserved'], rows: [{ product_id: 2, quantity_available: 0, quantity_reserved: 1 }, { product_id: 6, quantity_available: 3, quantity_reserved: 7 }] },
+    ],
+    query: `SELECT o.id, o.total_amount, i.invoice_number, i.amount AS invoice_amount
+FROM orders o
+JOIN invoices i ON i.order_id = o.id
+WHERE i.amount <> o.total_amount;`,
+    steps: ['orders даёт ожидаемую сумму заказа.', 'invoices даёт сумму документа.', 'JOIN связывает документ с заказом.', '<> оставляет несовпадения.', 'Результат - финансовая аномалия, не просто список строк.'],
+    resultColumns: ['id', 'total_amount', 'invoice_number', 'invoice_amount'],
+    resultRows: [{ id: 1007, total_amount: 780, invoice_number: 'INV-1007', invoice_amount: 700 }],
+    wrongQuery: `SELECT DISTINCT o.id
+FROM orders o
+JOIN invoices i ON i.order_id = o.id;`,
+    whyWrong: 'DISTINCT убирает повторы, но не проверяет сумму. Он может красиво скрыть проблему, не решив её.',
+    interviewShort: 'ERP-диагностика - это поиск противоречий между связанными фактами.',
+    interviewStrong: 'Я формулирую инвариант процесса: paid должен иметь captured payment, invoice и shipment; invoice amount должен совпадать с order total; reserved не должен превышать available.',
+    practice: ['Найди paid без invoice.', 'Найди reserved > available.', 'Найди дубли transaction_id.'],
+    checklist: ['Умею писать диагностические запросы.', 'Понимаю инварианты ERP.', 'Могу объяснить причину строки в результате.'],
+    mistakes: ['DISTINCT вместо анализа.', 'Проверять только одну таблицу.', 'Не отделять симптом от причины.'],
+  },
+  'module-8': {
+    businessProblem: 'Финальная задача: клиент оплатил заказ, но товар не отгрузился. Нужно пройти весь путь расследования и объяснить его на интервью.',
+    analogy: 'Это как финальная репетиция: ты не просто знаешь ноты, а играешь весь сценарий от жалобы до вывода.',
+    miniTables: [
+      { name: 'orders', columns: ['id', 'status'], rows: [{ id: 1007, status: 'paid' }, { id: 1008, status: 'paid' }] },
+      { name: 'shipments', columns: ['order_id', 'status'], rows: [{ order_id: 1001, status: 'shipped' }, { order_id: 1010, status: 'pending' }] },
+      { name: 'integration_logs', columns: ['entity_type', 'entity_id', 'status'], rows: [{ entity_type: 'shipment', entity_id: 1007, status: 'error' }] },
+    ],
+    query: `SELECT o.id, o.status, o.total_amount
+FROM orders o
+WHERE o.status = 'paid'
+  AND NOT EXISTS (
+    SELECT 1
+    FROM shipments s
+    WHERE s.order_id = o.id
+  );`,
+    steps: ['Начинаем от paid orders.', 'NOT EXISTS проверяет отсутствие shipment.', 'Получаем кандидатов на инцидент.', 'Дальше отдельно проверяем payments, invoices, inventory, integration_logs и audit_log.'],
+    resultColumns: ['id', 'status', 'total_amount'],
+    resultRows: [{ id: 1006, status: 'paid', total_amount: 210 }, { id: 1007, status: 'paid', total_amount: 780 }, { id: 1008, status: 'paid', total_amount: 1200 }],
+    wrongQuery: `SELECT *
+FROM orders
+WHERE status = 'paid';`,
+    whyWrong: 'Это только список paid заказов. Он не доказывает проблему отгрузки и не проверяет связанные таблицы.',
+    interviewShort: 'Я расследую paid order без shipment шагами: order, payment, invoice, shipment, inventory, logs.',
+    interviewStrong: 'Я сначала нахожу paid orders без shipment, затем проверяю captured payment, invoice mismatch, остатки по order_items и ошибки интеграции. На интервью объясняю не только SQL, но и бизнес-логику каждого шага.',
+    practice: ['Реши финальный кейс за 45 минут.', 'Объясни вслух каждый запрос.', 'Найди не одну, а три возможные причины.'],
+    checklist: ['Готов к mock interview.', 'Есть 50 вопросов и практические задачи.', 'Умею объяснять ошибки новичка.'],
+    mistakes: ['Один огромный запрос без логики.', 'Нет проверки inventory.', 'Нет объяснения результата словами.'],
+  },
+}
+
 function ModulesView({
   activeModule,
   progress,
@@ -1992,6 +2248,8 @@ function ModulesView({
 
         {activeModule.number === 0 && <FoundationPrimer />}
 
+        <ModuleTrainingPanel pack={moduleTrainingPacks[activeModule.id]} moduleTasks={sqlTasks.filter((task) => task.moduleId === activeModule.id)} />
+
         <ConceptExplanationSection concepts={concepts} />
 
         <WorkedExampleCard example={workedExamples[activeModule.id]} />
@@ -2018,6 +2276,172 @@ function ModulesView({
         <QuizCard key={activeModule.id} module={activeModule} savedScore={progress.quizScores[activeModule.id]} onScore={onQuizScore} />
         <TaskCard title={`Мини-задание: ${activeModule.task.title}`} prompt={activeModule.task.prompt} sql={activeModule.task.starterSql} hint={activeModule.task.expectedHint} />
         {activeModule.id === modules[modules.length - 1].id && <ExamView embedded />}
+      </div>
+    </div>
+  )
+}
+
+function ModuleTrainingPanel({ pack, moduleTasks }: { pack?: ModuleTrainingPack; moduleTasks: SqlTask[] }) {
+  const [showInterview, setShowInterview] = useState(false)
+  if (!pack) return null
+
+  return (
+    <div className="space-y-5">
+      <Card className="p-5 md:p-6">
+        <div className="grid gap-5 xl:grid-cols-[0.9fr_1.1fr]">
+          <div>
+            <Badge tone="teal">Сначала понять</Badge>
+            <h3 className="mt-3 text-2xl font-semibold text-white">Бизнес-проблема, а не сухой синтаксис</h3>
+            <p className="mt-3 text-slate-300">{pack.businessProblem}</p>
+            <div className="mt-4 rounded-md border border-teal-400/25 bg-teal-400/10 p-4 text-sm text-teal-100">
+              <p className="font-semibold text-white">Аналогия</p>
+              <p className="mt-2">{pack.analogy}</p>
+            </div>
+          </div>
+          <div className="grid gap-3 md:grid-cols-2">
+            {pack.miniTables.map((table) => <TrainingMiniTable key={table.name} table={table} />)}
+          </div>
+        </div>
+      </Card>
+
+      <Card className="p-5 md:p-6">
+        <div className="grid gap-5 xl:grid-cols-[1fr_0.85fr]">
+          <div className="min-w-0">
+            <Badge tone="blue">Разбираем SQL</Badge>
+            <div className="mt-4"><SqlCode>{pack.query}</SqlCode></div>
+            <div className="mt-4 grid gap-2">
+              {pack.steps.map((step, index) => (
+                <div key={step} className="flex gap-3 rounded-md border border-slate-800 bg-slate-900/55 p-3 text-sm text-slate-300">
+                  <span className="grid size-7 shrink-0 place-items-center rounded-md bg-sky-400 text-xs font-bold text-slate-950">{index + 1}</span>
+                  <span>{step}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+          <div className="min-w-0">
+            <Badge tone="teal">Ожидаемый результат</Badge>
+            <div className="mt-4"><TrainingResultTable columns={pack.resultColumns} rows={pack.resultRows} /></div>
+            <div className="mt-4 rounded-md border border-sky-400/25 bg-sky-400/10 p-4 text-sm text-sky-100">
+              Результат нужно уметь объяснить построчно: почему эта строка попала и почему похожая строка не попала.
+            </div>
+          </div>
+        </div>
+      </Card>
+
+      <Card className="p-5 md:p-6">
+        <div className="grid gap-5 xl:grid-cols-2">
+          <div className="min-w-0">
+            <Badge tone="amber">Почему не так</Badge>
+            <div className="mt-4"><SqlCode>{pack.wrongQuery}</SqlCode></div>
+            <p className="mt-4 rounded-md border border-amber-400/25 bg-amber-400/10 p-4 text-sm text-amber-100">{pack.whyWrong}</p>
+          </div>
+          <div>
+            <Badge tone="teal">Собеседование</Badge>
+            <div className="mt-4 space-y-3">
+              <div className="rounded-md border border-slate-800 bg-slate-900/55 p-4">
+                <p className="text-sm font-semibold text-white">Коротко</p>
+                <p className="mt-2 text-sm text-slate-300">“{pack.interviewShort}”</p>
+              </div>
+              <div className="rounded-md border border-teal-400/20 bg-teal-400/10 p-4">
+                <p className="text-sm font-semibold text-white">Сильный инженерный ответ</p>
+                <p className="mt-2 text-sm text-teal-100">“{pack.interviewStrong}”</p>
+              </div>
+              <Button variant="secondary" onClick={() => setShowInterview((value) => !value)}>
+                {showInterview ? 'Скрыть шаблон ответа' : 'Показать ответ для собеседования'}
+              </Button>
+              {showInterview && (
+                <div className="rounded-md border border-slate-800 bg-slate-950/70 p-4 text-sm text-slate-300">
+                  <p>1. Сначала называю бизнес-проблему.</p>
+                  <p>2. Потом называю главную таблицу.</p>
+                  <p>3. Потом объясняю связи.</p>
+                  <p>4. Потом объясняю фильтр.</p>
+                  <p>5. Потом говорю, какую ошибку избегаю.</p>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      </Card>
+
+      <Card className="p-5 md:p-6">
+        <div className="grid gap-5 xl:grid-cols-3">
+          <ModuleList title="Практика: 3 уровня" items={pack.practice} tone="teal" />
+          <ModuleList title="Итог модуля" items={pack.checklist} tone="blue" />
+          <ModuleList title="Типичные ошибки" items={pack.mistakes} tone="amber" />
+        </div>
+        {moduleTasks.length > 0 && (
+          <div className="mt-5">
+            <p className="text-sm font-semibold text-white">Задачи этого модуля в песочнице</p>
+            <div className="mt-3 grid gap-3 lg:grid-cols-2">
+              {moduleTasks.slice(0, 6).map((task) => (
+                <div key={task.id} className="rounded-md border border-slate-800 bg-slate-900/55 p-4">
+                  <p className="font-semibold text-teal-200">{task.title}</p>
+                  <p className="mt-2 text-sm text-slate-400">{task.businessContext}</p>
+                  <p className="mt-2 text-xs text-sky-200">Проверка: {task.validation.requiredKeywords?.join(', ') ?? 'по результату запроса'}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </Card>
+    </div>
+  )
+}
+
+function TrainingMiniTable({ table }: { table: ModuleTrainingPack['miniTables'][number] }) {
+  return (
+    <div className="overflow-hidden rounded-md border border-slate-800 bg-slate-950/70">
+      <div className="border-b border-slate-800 px-3 py-2 font-mono text-sm font-semibold text-teal-200">{table.name}</div>
+      <div className="overflow-x-auto">
+        <table className="w-full min-w-[320px] text-left text-xs">
+          <thead className="bg-slate-900 text-slate-400">
+            <tr>{table.columns.map((column) => <th key={column} className="px-3 py-2 font-semibold">{column}</th>)}</tr>
+          </thead>
+          <tbody>
+            {table.rows.map((row, index) => (
+              <tr key={index} className="border-t border-slate-800">
+                {table.columns.map((column) => <td key={column} className="px-3 py-2 text-slate-300">{String(row[column] ?? 'NULL')}</td>)}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  )
+}
+
+function TrainingResultTable({ columns, rows }: { columns: string[]; rows: Array<Record<string, string | number | null>> }) {
+  return (
+    <div className="overflow-hidden rounded-md border border-slate-800 bg-slate-950/70">
+      <div className="overflow-x-auto">
+        <table className="w-full min-w-[380px] text-left text-sm">
+          <thead className="bg-slate-900 text-slate-300">
+            <tr>{columns.map((column) => <th key={column} className="px-3 py-2 font-semibold">{column}</th>)}</tr>
+          </thead>
+          <tbody>
+            {rows.map((row, index) => (
+              <tr key={index} className="border-t border-slate-800">
+                {columns.map((column) => <td key={column} className="px-3 py-2 text-slate-300">{String(row[column] ?? 'NULL')}</td>)}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  )
+}
+
+function ModuleList({ title, items, tone }: { title: string; items: string[]; tone: 'teal' | 'blue' | 'amber' }) {
+  return (
+    <div className={cn(
+      'rounded-md border p-4',
+      tone === 'teal' && 'border-teal-400/20 bg-teal-400/10',
+      tone === 'blue' && 'border-sky-400/20 bg-sky-400/10',
+      tone === 'amber' && 'border-amber-400/20 bg-amber-400/10',
+    )}>
+      <p className="font-semibold text-white">{title}</p>
+      <div className="mt-3 space-y-2">
+        {items.map((item) => <p key={item} className="text-sm text-slate-200">• {item}</p>)}
       </div>
     </div>
   )
@@ -2328,6 +2752,19 @@ function SqlSandbox({ initialSql }: { initialSql: string }) {
   const [rows, setRows] = useState<Record<string, unknown>[]>([])
   const [columns, setColumns] = useState<string[]>([])
   const [message, setMessage] = useState('База готовится...')
+  const [selectedTaskId, setSelectedTaskId] = useState(sqlTasks[0]?.id ?? '')
+  const [showHint, setShowHint] = useState(false)
+  const [showSolution, setShowSolution] = useState(false)
+  const [taskMessage, setTaskMessage] = useState('')
+  const [completedTaskIds, setCompletedTaskIds] = useState<string[]>(() => {
+    try {
+      return JSON.parse(localStorage.getItem('sql-erp-completed-tasks') ?? '[]')
+    } catch {
+      return []
+    }
+  })
+  const selectedTask = sqlTasks.find((task) => task.id === selectedTaskId) ?? sqlTasks[0]
+  const schemaTableNames = schemaSummary.map((table) => table.split('(')[0])
 
   const resetDb = async () => {
     const SQL = await initSqlJs({ locateFile: () => wasmUrl })
@@ -2378,19 +2815,125 @@ function SqlSandbox({ initialSql }: { initialSql: string }) {
     }
   }
 
+  const openTask = (task: SqlTask) => {
+    setSelectedTaskId(task.id)
+    setSql(task.starterSql)
+    setShowHint(false)
+    setShowSolution(false)
+    setTaskMessage('')
+  }
+
+  const previewTable = (tableName: string) => {
+    setSql(`SELECT *
+FROM ${tableName}
+LIMIT 10;`)
+  }
+
+  const saveCompletedTask = (taskId: string) => {
+    setCompletedTaskIds((current) => {
+      const next = current.includes(taskId) ? current : [...current, taskId]
+      localStorage.setItem('sql-erp-completed-tasks', JSON.stringify(next))
+      return next
+    })
+  }
+
+  const compareWithTask = () => {
+    if (!db || !selectedTask) return
+    try {
+      const normalizedSql = sql.toUpperCase().replace(/\s+/g, ' ')
+      const missingKeywords = (selectedTask.validation.requiredKeywords ?? []).filter((keyword) => !normalizedSql.includes(keyword.toUpperCase()))
+      const forbiddenKeywords = (selectedTask.validation.forbiddenKeywords ?? []).filter((keyword) => normalizedSql.includes(keyword.toUpperCase()))
+      const result = db.exec(sql)
+      const first = result[0]
+      const resultRows = first ? first.values.map((valueRow) => Object.fromEntries(first.columns.map((column, index) => [column, valueRow[index]]))) : []
+      const expectedIds = selectedTask.validation.expectedRowIds
+      const idColumn = selectedTask.validation.idColumn
+      const actualIds = idColumn ? resultRows.map((row) => Number(row[idColumn])).filter((value) => !Number.isNaN(value)).sort((a, b) => a - b) : []
+      const expectedIdsSorted = expectedIds ? [...expectedIds].sort((a, b) => a - b) : undefined
+      const idsMatch = !expectedIdsSorted || (
+        actualIds.length === expectedIdsSorted.length &&
+        actualIds.every((value, index) => value === expectedIdsSorted[index])
+      )
+
+      if (first) {
+        setColumns(first.columns)
+        setRows(resultRows)
+      }
+
+      if (missingKeywords.length || forbiddenKeywords.length || !idsMatch) {
+        const parts = [
+          missingKeywords.length ? `Не хватает условия/приёма: ${missingKeywords.join(', ')}.` : '',
+          forbiddenKeywords.length ? `Есть опасный паттерн: ${forbiddenKeywords.join(', ')}.` : '',
+          !idsMatch && expectedIdsSorted ? `Ожидались id: ${expectedIdsSorted.join(', ')}, получились: ${actualIds.join(', ') || 'нет строк'}.` : '',
+        ].filter(Boolean)
+        setTaskMessage(parts.join(' '))
+        setMessage('Запрос выполнен, но задача пока не совпала с эталоном.')
+        return
+      }
+
+      saveCompletedTask(selectedTask.id)
+      setTaskMessage(`Зачтено. ${selectedTask.explanation}`)
+      setMessage(`Задача засчитана: ${resultRows.length} строк.`)
+    } catch (error) {
+      setTaskMessage(error instanceof Error ? `SQL не выполнился: ${error.message}` : 'SQL не выполнился.')
+    }
+  }
+
   return (
     <div className="grid gap-6 lg:grid-cols-[0.72fr_1.28fr]">
       <div className="space-y-6">
         <Card className="p-6">
           <SectionTitle title="SQL-песочница" subtitle="SQLite работает прямо в браузере через sql.js. На Vercel внешняя БД не нужна: учебная база создаётся локально при открытии страницы." compact />
           <div className="mt-5 space-y-2">
-            {schemaSummary.map((table) => <div key={table} className="rounded-md border border-slate-800 bg-slate-900/60 px-3 py-2 font-mono text-xs text-slate-300">{table}</div>)}
+            {schemaSummary.map((table, index) => (
+              <button key={table} type="button" onClick={() => previewTable(schemaTableNames[index])} className="w-full rounded-md border border-slate-800 bg-slate-900/60 px-3 py-2 text-left font-mono text-xs text-slate-300 hover:border-teal-400/40 hover:text-white">
+                {table}
+              </button>
+            ))}
           </div>
           <div className="mt-5 flex flex-wrap gap-3">
             <Button onClick={runQuery}><Play size={17} />Выполнить</Button>
             <Button variant="secondary" onClick={resetDb}><RotateCcw size={17} />Сбросить БД</Button>
           </div>
           <p className="mt-3 text-xs text-slate-500">Подсказка: на клавиатуре можно нажать Ctrl + Enter.</p>
+        </Card>
+        <Card className="p-5">
+          <h3 className="font-semibold text-white">Тренажёр задач</h3>
+          <p className="mt-2 text-sm text-slate-400">Выбери задачу, запусти SQL и сравни с эталоном. Проверка смотрит результат и ключевые условия, а не требует переписать запрос слово в слово.</p>
+          <div className="mt-4 max-h-80 space-y-2 overflow-y-auto pr-1">
+            {sqlTasks.map((task) => (
+              <button key={task.id} type="button" onClick={() => openTask(task)} className={cn('w-full rounded-md border p-3 text-left text-sm transition', selectedTask?.id === task.id ? 'border-teal-400/50 bg-teal-400/10 text-white' : 'border-slate-800 bg-slate-900/60 text-slate-300 hover:border-slate-700')}>
+                <span className="text-xs text-teal-200">{task.moduleId.replace('module-', 'Модуль ')}</span>
+                <span className="ml-2 font-semibold">{task.title}</span>
+                {completedTaskIds.includes(task.id) && <span className="ml-2 text-xs text-teal-200">зачтено</span>}
+              </button>
+            ))}
+          </div>
+          {selectedTask && (
+            <div className="mt-4 rounded-md border border-slate-800 bg-slate-950/70 p-4">
+              <p className="font-semibold text-white">{selectedTask.title}</p>
+              <p className="mt-2 text-sm text-slate-300">{selectedTask.businessContext}</p>
+              <div className="mt-3 flex flex-wrap gap-2">
+                <Button variant="secondary" onClick={() => setShowHint((value) => !value)}>Показать подсказку</Button>
+                <Button variant="secondary" onClick={() => setShowSolution((value) => !value)}>Показать решение</Button>
+                <Button onClick={compareWithTask}>Сравнить с эталоном</Button>
+              </div>
+              {showHint && (
+                <div className="mt-3 rounded-md border border-sky-400/20 bg-sky-400/10 p-3 text-sm text-sky-100">
+                  {selectedTask.hints.map((hint) => <p key={hint}>• {hint}</p>)}
+                </div>
+              )}
+              {showSolution && (
+                <div className="mt-3 space-y-3">
+                  <SqlCode>{selectedTask.expectedSql}</SqlCode>
+                  <p className="text-sm text-slate-300">{selectedTask.explanation}</p>
+                  <p className="rounded-md border border-teal-400/20 bg-teal-400/10 p-3 text-sm text-teal-100">Ответ для собеседования: {selectedTask.interviewAnswer}</p>
+                  <p className="rounded-md border border-amber-400/20 bg-amber-400/10 p-3 text-sm text-amber-100">Частая ошибка: {selectedTask.commonMistake}</p>
+                </div>
+              )}
+              {taskMessage && <p className="mt-3 rounded-md border border-slate-800 bg-slate-900/70 p-3 text-sm text-slate-200">{taskMessage}</p>}
+            </div>
+          )}
         </Card>
         <Card className="p-5">
           <h3 className="font-semibold text-white">Быстрые запросы</h3>
@@ -2528,6 +3071,22 @@ function InterviewView() {
   return (
     <div className="space-y-6">
       <SectionTitle title="Собеседование" subtitle="Ответы в стиле инженера: через данные, связи и бизнес-процесс." />
+      <Card className="p-6">
+        <h3 className="text-xl font-semibold text-white">Режим mock interview</h3>
+        <p className="mt-2 text-sm text-slate-400">Отвечай по формуле: бизнес-проблема → главная таблица → связи → фильтр → ошибка, которую избегаю.</p>
+        <div className="mt-4 grid gap-3 lg:grid-cols-2">
+          {erpInterviewCases.slice(0, 10).map((item, index) => (
+            <div key={item} className="rounded-md border border-slate-800 bg-slate-900/55 p-4">
+              <p className="text-sm font-semibold text-teal-200">Кейс {index + 1}</p>
+              <p className="mt-2 text-sm text-slate-300">{item}</p>
+            </div>
+          ))}
+        </div>
+      </Card>
+      <div className="grid gap-4 lg:grid-cols-2">
+        <InterviewAnswerList title="30 коротких SQL-ответов" items={interviewShortAnswers} />
+        <InterviewAnswerList title="30 сильных SQL-ответов" items={interviewStrongAnswers} />
+      </div>
       <div className="space-y-3">
         {interviewPrompts.map((item, index) => (
           <Card key={item.question} className="overflow-hidden">
@@ -2540,6 +3099,21 @@ function InterviewView() {
         ))}
       </div>
     </div>
+  )
+}
+
+function InterviewAnswerList({ title, items }: { title: string; items: string[] }) {
+  return (
+    <Card className="p-5">
+      <h3 className="text-lg font-semibold text-white">{title}</h3>
+      <div className="mt-4 max-h-[520px] space-y-2 overflow-y-auto pr-1">
+        {items.map((item, index) => (
+          <p key={`${title}-${index}`} className="rounded-md border border-slate-800 bg-slate-900/55 p-3 text-sm text-slate-300">
+            <span className="font-semibold text-teal-200">{index + 1}.</span> {item}
+          </p>
+        ))}
+      </div>
+    </Card>
   )
 }
 
@@ -2566,6 +3140,23 @@ function ReferenceView() {
   return (
     <div className="space-y-6">
       <SectionTitle title="Справочник SQL-команд" subtitle="Не просто команды, а слова и идеи, которыми нужно уверенно говорить на интервью." />
+
+      <Card className="p-6">
+        <h3 className="text-xl font-semibold text-white">Шпаргалка: какой SQL-инструмент выбрать</h3>
+        <div className="mt-5 grid gap-3 md:grid-cols-2">
+          {sqlToolCheatsheet.map((item) => (
+            <div key={item.need} className="rounded-md border border-slate-800 bg-slate-900/55 p-4">
+              <p className="text-sm text-slate-400">{item.need}</p>
+              <p className="mt-2 font-semibold text-teal-200">{item.tools}</p>
+            </div>
+          ))}
+        </div>
+      </Card>
+
+      <div className="grid gap-4 lg:grid-cols-2">
+        <InterviewAnswerList title="20 типичных ошибок новичка" items={beginnerMistakes} />
+        <InterviewAnswerList title="20 ERP-кейсов для повторения" items={erpInterviewCases} />
+      </div>
 
       <Card className="p-6">
         <h3 className="text-xl font-semibold text-white">Словарь новичка: простыми словами</h3>
