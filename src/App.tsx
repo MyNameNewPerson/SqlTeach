@@ -3,22 +3,17 @@ import initSqlJs, { type Database } from 'sql.js'
 import wasmUrl from 'sql.js/dist/sql-wasm.wasm?url'
 import {
   BookOpen,
-  CalendarDays,
   ChevronDown,
   ChevronUp,
   CheckCircle2,
-  ClipboardCheck,
   DatabaseZap,
   Table2,
   FileQuestion,
   GraduationCap,
   LayoutDashboard,
-  Map,
   Play,
   RotateCcw,
-  SearchCheck,
   TerminalSquare,
-  Trophy,
 } from 'lucide-react'
 import { conceptExplanations, moduleConcepts } from './data/concepts'
 import type { ConceptExplanation, ConceptTable } from './data/concepts'
@@ -35,16 +30,11 @@ import { Badge, Button, Card, Progress, SqlCode } from './components/ui'
 
 const navItems: NavItem[] = [
   { id: 'dashboard', label: 'Главная', icon: LayoutDashboard },
-  { id: 'tables', label: 'ERP-таблицы', icon: Table2 },
-  { id: 'sprint', label: 'План на 3 дня', icon: CalendarDays },
-  { id: 'map', label: 'Карта курса', icon: Map },
   { id: 'modules', label: 'Модули', icon: BookOpen },
+  { id: 'tables', label: 'ERP-таблицы', icon: Table2 },
   { id: 'sandbox', label: 'SQL-песочница', icon: TerminalSquare },
-  { id: 'tests', label: 'Тесты', icon: ClipboardCheck },
-  { id: 'practice', label: 'Практика', icon: SearchCheck },
   { id: 'cases', label: 'ERP-кейсы', icon: DatabaseZap },
   { id: 'interview', label: 'Собеседование', icon: FileQuestion },
-  { id: 'exam', label: 'Финальный экзамен', icon: Trophy },
   { id: 'reference', label: 'Справочник', icon: GraduationCap },
 ]
 
@@ -347,6 +337,7 @@ function Dashboard({
 
   return (
     <div className="space-y-4 md:space-y-6">
+      <SqlConfidenceIntro />
       <FoundationPrimer onOpenTables={onOpenTables} />
       <MemoryMethodSection />
 
@@ -378,7 +369,7 @@ function Dashboard({
             </Card>
           </div>
           <div className="mt-4 lg:mt-6 flex flex-wrap gap-2 lg:gap-3">
-            <Button onClick={onOpenSprint} className="pointer-events-auto text-sm lg:text-base"><CalendarDays size={16} />План на 3 дня</Button>
+            <Button onClick={onOpenSprint} className="pointer-events-auto text-sm lg:text-base"><BookOpen size={16} />План на 3 дня</Button>
             <Button variant="secondary" onClick={onOpenModules} className="pointer-events-auto text-sm lg:text-base"><Play size={16} />Продолжить урок</Button>
             <Button variant="secondary" onClick={onOpenSandbox} className="pointer-events-auto text-sm lg:text-base"><TerminalSquare size={16} />Песочница</Button>
             <Button variant="danger" onClick={onReset} className="pointer-events-auto text-sm lg:text-base"><RotateCcw size={16} />Сброс</Button>
@@ -448,6 +439,26 @@ function Dashboard({
   )
 }
 
+function SqlConfidenceIntro() {
+  return (
+    <Card className="p-4 md:p-6">
+      <Badge tone="teal">старт без страха</Badge>
+      <h2 className="mt-3 text-2xl font-semibold text-white md:text-3xl">Почему SQL - это не страшно и не долго</h2>
+      <div className="mt-4 grid gap-4 text-sm leading-6 text-slate-300 lg:grid-cols-[1fr_1fr]">
+        <div className="space-y-3">
+          <p>SQL - это не язык программирования в обычном смысле. Это способ задать вопрос базе данных. Похоже на поиск, где ты пишешь “заказ 1004 статус”, только форма записи чуть строже.</p>
+          <p>В ERP всё хранится в таблицах, почти как в Excel. SQL нужен, чтобы спросить: “покажи мне заказы за февраль, у которых оплата не прошла”. Такой запрос обычно занимает 4-5 строк.</p>
+          <p>За 3 дня ты научишься находить, фильтровать и связывать данные. Этого достаточно для большинства задач ERP-инженера и для спокойного ответа на собеседовании.</p>
+        </div>
+        <div className="rounded-md border border-sky-400/20 bg-sky-400/10 p-4 text-sky-100">
+          <p className="font-semibold text-white">Пример из жизни</p>
+          <p className="mt-2">Представь, что ты идёшь к врачу и называешь симптом. Врач не лечит вслепую, а смотрит анализы. SQL - это способ смотреть анализы в ERP.</p>
+        </div>
+      </div>
+    </Card>
+  )
+}
+
 function FoundationPrimer({ onOpenTables }: { onOpenTables?: () => void }) {
   return (
     <section className="min-w-0 space-y-4 md:space-y-6">
@@ -461,7 +472,7 @@ function FoundationPrimer({ onOpenTables }: { onOpenTables?: () => void }) {
               SQL нужен, чтобы задавать этим листам точные вопросы.
             </p>
             <div className="mt-5 grid grid-cols-[minmax(0,1fr)] gap-3 sm:grid-cols-2">
-              {tableAnatomy.map((item) => (
+              {tableAnatomy.slice(0, 4).map((item) => (
                 <div key={item.title} className="rounded-md border border-slate-800 bg-slate-900/55 p-3">
                   <p className="font-semibold text-teal-200">{item.title}</p>
                   <p className="mt-2 text-sm text-slate-300">{item.text}</p>
@@ -481,6 +492,10 @@ function FoundationPrimer({ onOpenTables }: { onOpenTables?: () => void }) {
           </div>
         </div>
       </Card>
+
+      <WhySplitTablesCard />
+      <DataTypesCard />
+      <KeyBasicsCard />
 
       <div className="grid min-w-0 grid-cols-[minmax(0,1fr)] gap-4 2xl:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)]">
         <Card className="p-4 md:p-6">
@@ -520,6 +535,111 @@ WHERE id = 1004;`}</SqlCode></div>
         </Card>
       </div>
     </section>
+  )
+}
+
+function WhySplitTablesCard() {
+  const allInOneRows = [
+    ['1001', 'Delta Shop', 'Comrat', 'POS terminal', '780', 'paid'],
+    ['1002', 'Delta Shop', 'Comrat', 'POS terminal', '780', 'new'],
+    ['1003', 'Delta Shop', 'Comrat', 'Scanner', '210', 'shipped'],
+  ]
+  const normalizedTables = [
+    { title: 'customers', columns: ['id', 'name', 'city'], rows: [['5', 'Delta Shop', 'Comrat']] },
+    { title: 'products', columns: ['id', 'name', 'price'], rows: [['8', 'POS terminal', '780'], ['9', 'Scanner', '210']] },
+    { title: 'orders', columns: ['id', 'customer_id', 'status'], rows: [['1001', '5', 'paid'], ['1002', '5', 'new']] },
+  ]
+
+  return (
+    <Card className="p-4 md:p-6">
+      <h3 className="text-xl font-semibold text-white">Зачем разделять данные на несколько таблиц?</h3>
+      <p className="mt-2 text-sm text-slate-400">Сначала посмотрим на плохой вариант: всё сложили в одну большую таблицу.</p>
+      <div className="mt-4 overflow-x-auto rounded-md border border-slate-800">
+        <table className="w-full min-w-[760px] text-left text-sm">
+          <thead className="bg-slate-900 text-slate-300">
+            <tr>{['order_id', 'customer_name', 'customer_city', 'product_name', 'product_price', 'status'].map((column) => <th key={column} className="px-3 py-2 font-mono text-xs">{column}</th>)}</tr>
+          </thead>
+          <tbody>
+            {allInOneRows.map((row) => (
+              <tr key={row.join('-')} className="odd:bg-slate-950 even:bg-slate-900/45">
+                {row.map((cell) => <td key={cell + row[0]} className="border-t border-slate-800 px-3 py-2 text-slate-300">{cell}</td>)}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      <div className="mt-4 grid gap-3 md:grid-cols-3">
+        <InfoBox title="1. Дублирование" text="Delta Shop, Comrat, POS terminal и 780 повторяются в каждой строке. Если у Delta Shop изменится город, нужно обновить сотни строк." tone="amber" />
+        <InfoBox title="2. Ошибки" text="В одной строке написали Comrat, в другой comrat. Для системы это уже разные значения." tone="amber" />
+        <InfoBox title="3. Размер" text="Большая таблица быстро растёт и становится медленнее, потому что в ней повторяется слишком много фактов." tone="amber" />
+      </div>
+      <div className="mt-5 grid gap-3 lg:grid-cols-3">
+        {normalizedTables.map((table) => (
+          <div key={table.title} className="overflow-hidden rounded-md border border-slate-800 bg-slate-950">
+            <p className="border-b border-slate-800 bg-slate-900 px-3 py-2 font-mono text-sm font-semibold text-teal-200">{table.title}</p>
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-[260px] text-left text-xs">
+                <thead><tr>{table.columns.map((column) => <th key={column} className="border-b border-slate-800 px-3 py-2 font-mono text-slate-400">{column}</th>)}</tr></thead>
+                <tbody>{table.rows.map((row) => <tr key={row.join('-')}>{row.map((cell) => <td key={cell + row[0]} className="border-b border-slate-800 px-3 py-2 text-slate-300">{cell}</td>)}</tr>)}</tbody>
+              </table>
+            </div>
+          </div>
+        ))}
+      </div>
+      <p className="mt-4 text-sm text-slate-300">ERP разделяет данные, чтобы каждый факт хранился ровно один раз. Связи по id позволяют собрать нужную картину одним запросом.</p>
+    </Card>
+  )
+}
+
+function DataTypesCard() {
+  const cards = [
+    { title: 'Текст (строка)', text: "Пишется в кавычках: 'paid', 'Chisinau', 'Delta Shop'.", sql: "WHERE status = 'paid'" },
+    { title: 'Число', text: 'Пишется без кавычек: 1004, 990, 5.', sql: 'WHERE id = 1004' },
+    { title: 'Дата', text: "Пишется как текст с кавычками в формате 'ГГГГ-ММ-ДД': '2026-02-01'.", sql: "WHERE order_date = '2026-02-01'" },
+  ]
+
+  return (
+    <Card className="p-4 md:p-6">
+      <h3 className="text-xl font-semibold text-white">Три вида данных, которые ты встретишь в каждой таблице</h3>
+      <div className="mt-4 grid gap-3 md:grid-cols-3">
+        {cards.map((card) => (
+          <div key={card.title} className="rounded-md border border-slate-800 bg-slate-900/55 p-4">
+            <p className="font-semibold text-teal-200">{card.title}</p>
+            <p className="mt-2 text-sm text-slate-300">{card.text}</p>
+            <div className="mt-3"><SqlCode>{card.sql}</SqlCode></div>
+          </div>
+        ))}
+      </div>
+      <div className="mt-4 rounded-md border border-amber-400/20 bg-amber-400/10 p-4 text-sm text-amber-100">
+        Частая ошибка новичка - написать WHERE id = '1004' с кавычками. Для числа кавычки не нужны, иначе база воспринимает его как текст и может не найти совпадение.
+      </div>
+    </Card>
+  )
+}
+
+function KeyBasicsCard() {
+  return (
+    <Card className="p-4 md:p-6">
+      <h3 className="text-xl font-semibold text-white">PRIMARY KEY и FOREIGN KEY без тумана</h3>
+      <div className="mt-4 grid gap-4 lg:grid-cols-2">
+        <div className="rounded-md border border-teal-400/20 bg-teal-400/10 p-4">
+          <p className="font-semibold text-white">PRIMARY KEY</p>
+          <div className="mt-2 space-y-2 text-sm text-teal-100">
+            <p>PRIMARY KEY - это главный уникальный номер строки. В customers каждый клиент получает свой id: 1, 2, 3, 4, 5.</p>
+            <p>Зачем это нужно: имя клиента может измениться, город может измениться, но id = 5 всегда будет означать именно этого клиента.</p>
+            <p>Пример: если Delta Shop переименовалась в Delta Market, поиск по имени может сломаться. WHERE customer_id = 5 найдёт этого клиента всегда.</p>
+          </div>
+        </div>
+        <div className="rounded-md border border-sky-400/20 bg-sky-400/10 p-4">
+          <p className="font-semibold text-white">FOREIGN KEY</p>
+          <div className="mt-2 space-y-2 text-sm text-sky-100">
+            <p>FOREIGN KEY - это колонка в одной таблице, которая содержит id из другой таблицы.</p>
+            <p>В orders колонка customer_id со значением 5 означает: заказ принадлежит клиенту с id = 5 из customers.</p>
+            <p>Частая ошибка: если в orders.customer_id написано 999, а клиента 999 нет, это orphan record - запись указывает в никуда.</p>
+          </div>
+        </div>
+      </div>
+    </Card>
   )
 }
 
@@ -724,9 +844,9 @@ function MemoryMethodSection() {
     <section className="grid gap-4 xl:grid-cols-[0.95fr_1.05fr]">
       <Card className="p-4 md:p-6">
         <Badge tone="amber">метод запоминания</Badge>
-        <h3 className="mt-3 text-2xl font-semibold text-white">Как запоминать SQL, а не просто читать</h3>
+        <h3 className="mt-3 text-2xl font-semibold text-white">Как работать с каждым модулем - конкретная инструкция</h3>
         <p className="mt-3 text-sm text-slate-400">
-          Рабочая схема для 3 дней: визуально увидеть данные, сказать задачу своими словами, запустить запрос, вспомнить без подсказки и повторить позже.
+          Один цикл на каждую тему: прочитать, запустить, объяснить и решить кейс.
         </p>
         <div className="mt-5 grid gap-3 sm:grid-cols-2">
           {memoryMethod.map((item) => (
@@ -1205,7 +1325,6 @@ function ModulesView({
   onComplete: (id: string) => void
   onQuizScore: (moduleId: string, score: number) => void
 }) {
-  const status = moduleStatus(activeModule, progress)
   const concepts = (moduleConcepts[activeModule.id] ?? []).map((id) => conceptExplanations[id]).filter(Boolean)
 
   return (
@@ -1262,27 +1381,25 @@ function ModulesView({
         <Card className="p-4 md:p-6">
           <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
             <div className="min-w-0">
-              <Badge tone={status.tone}>{status.label}</Badge>
-              <h2 className="mt-3 text-2xl font-semibold leading-tight text-white md:text-3xl">Модуль {activeModule.number}. {activeModule.title}</h2>
+              <h2 className="text-2xl font-semibold leading-tight text-white md:text-3xl">Модуль {activeModule.number}. {activeModule.title}</h2>
               <p className="mt-3 text-slate-300">{activeModule.goal}</p>
             </div>
             <Button className="w-full md:w-auto" onClick={() => onComplete(activeModule.id)}><CheckCircle2 size={17} />Завершить модуль</Button>
           </div>
-          <div className="mt-5 rounded-md border border-slate-800 bg-slate-900/60 p-4">
-            <p className="text-sm font-semibold text-teal-200">ERP-контекст</p>
-            <p className="mt-2 text-sm text-slate-300">{activeModule.erpContext}</p>
-          </div>
-          <div className="mt-4 grid gap-3 md:grid-cols-3">
-            <div className="rounded-md border border-slate-800 bg-slate-900/45 p-4">
-              <p className="text-sm font-semibold text-white">Как проходить</p>
-              <p className="mt-2 text-sm text-slate-400">Прочитай пример, выполни SQL в песочнице, поменяй одно условие.</p>
+          <div className="mt-5 grid gap-3 lg:grid-cols-[1.25fr_0.9fr_0.85fr]">
+            <div className="rounded-md border border-teal-400/30 bg-teal-400/10 p-4">
+              <div className="flex items-center gap-2 text-sm font-semibold text-teal-100">
+                <DatabaseZap size={17} />
+                ERP-контекст
+              </div>
+              <p className="mt-2 text-sm text-slate-200">{activeModule.erpContext}</p>
             </div>
             <div className="rounded-md border border-slate-800 bg-slate-900/45 p-4">
-              <p className="text-sm font-semibold text-white">Что запомнить</p>
-              <p className="mt-2 text-sm text-slate-400">Не команду отдельно, а какую ERP-проблему она помогает проверить.</p>
+              <p className="text-sm font-semibold text-white">Как работать с модулем</p>
+              <p className="mt-2 text-sm text-slate-400">Прочитай пример, запусти SQL в песочнице, поменяй одно условие и запомни, какую ERP-проблему он проверяет.</p>
             </div>
             <div className="rounded-md border border-slate-800 bg-slate-900/45 p-4">
-              <p className="text-sm font-semibold text-white">Как отвечать</p>
+              <p className="text-sm font-semibold text-white">Фраза для собеседования</p>
               <p className="mt-2 text-sm text-slate-400">“Я проверю таблицы, связи и логи, потом объясню вывод”.</p>
             </div>
           </div>
@@ -1315,6 +1432,7 @@ function ModulesView({
 
         <QuizCard key={activeModule.id} module={activeModule} savedScore={progress.quizScores[activeModule.id]} onScore={onQuizScore} />
         <TaskCard title={`Мини-задание: ${activeModule.task.title}`} prompt={activeModule.task.prompt} sql={activeModule.task.starterSql} hint={activeModule.task.expectedHint} />
+        {activeModule.id === modules[modules.length - 1].id && <ExamView embedded />}
       </div>
     </div>
   )
@@ -1333,7 +1451,7 @@ function ConceptExplanationSection({ concepts }: { concepts: ConceptExplanation[
             Формат как в хорошем ответе наставника: коротко, пример из жизни, мини-таблицы, SQL, разбор по кускам и типичная ошибка.
           </p>
         </div>
-        <Badge tone="blue">{concepts.length} тем</Badge>
+        <Badge tone="blue">↓ {concepts.length} тем ниже</Badge>
       </div>
       <div className="mt-5 space-y-4">
         {concepts.map((concept, index) => (
@@ -1802,10 +1920,11 @@ function InterviewView() {
   )
 }
 
-function ExamView() {
+function ExamView({ embedded = false }: { embedded?: boolean }) {
   return (
     <div className="space-y-6">
-      <SectionTitle title="Финальный экзамен" subtitle="Проверь готовность: синтаксис, диагностика, объяснение решения." />
+      {!embedded && <SectionTitle title="Финальный экзамен" subtitle="Проверь готовность: синтаксис, диагностика, объяснение решения." />}
+      {embedded && <SectionTitle title="Финальный экзамен внутри модулей" subtitle="Финальная проверка открывается после последнего модуля." compact />}
       <Card className="p-6">
         <div className="space-y-4">
           {finalExam.map((item, index) => (

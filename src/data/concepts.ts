@@ -22,7 +22,7 @@ export type ConceptExplanation = {
 }
 
 export const moduleConcepts: Record<string, string[]> = {
-  'module-0': ['table-basics', 'primary-key', 'foreign-key'],
+  'module-0': ['table-basics', 'data-types', 'primary-key', 'foreign-key'],
   'module-1': ['select-from-where', 'where-filters', 'like-patterns', 'alias-as'],
   'module-2': ['foreign-key', 'join-on', 'left-vs-inner-join'],
   'module-3': ['aggregates-group-by', 'having'],
@@ -67,18 +67,48 @@ export const conceptExplanations: Record<string, ConceptExplanation> = {
     commonMistake: 'Думать, что вся информация должна лежать в одной таблице. В ERP данные разделяют, чтобы не было дублей и хаоса.',
     remember: 'Таблица = лист. Строка = одна запись. Колонка = свойство. Ячейка = одно значение.',
   },
+  'data-types': {
+    id: 'data-types',
+    title: 'Три вида данных, которые ты встретишь в каждой таблице',
+    short: 'Текст пишется в кавычках, числа без кавычек, даты как текст в формате ГГГГ-ММ-ДД.',
+    analogy: 'Как в анкете: имя - текст, номер заказа - число, дата заказа - календарная дата. Для базы это разные типы данных.',
+    tables: [
+      {
+        title: 'orders',
+        columns: ['колонка', 'тип', 'пример'],
+        rows: [
+          ['status', 'текст', "'paid'"],
+          ['id', 'число', 1004],
+          ['order_date', 'дата', "'2026-02-01'"],
+        ],
+      },
+    ],
+    sql: `SELECT id, status, order_date
+FROM orders
+WHERE status = 'paid'
+  AND id = 1004
+  AND order_date = '2026-02-01';`,
+    breakdown: [
+      { part: "WHERE status = 'paid'", meaning: 'Текст пишется в кавычках: paid, Chisinau, Delta Shop.' },
+      { part: 'WHERE id = 1004', meaning: 'Число пишется без кавычек: 1004, 990, 5.' },
+      { part: "WHERE order_date = '2026-02-01'", meaning: 'Дата пишется в кавычках в формате ГГГГ-ММ-ДД.' },
+    ],
+    erpExample: "Если нужно найти заказ 1004 со статусом paid за 1 февраля 2026, ты фильтруешь число, текст и дату разными правилами.",
+    commonMistake: "Частая ошибка новичка - написать WHERE id = '1004'. Для числа кавычки не нужны, иначе база воспринимает его как текст и может не найти совпадение.",
+    remember: 'Текст и даты в кавычках. Числа без кавычек.',
+  },
   'primary-key': {
     id: 'primary-key',
     title: 'PRIMARY KEY',
-    short: 'PRIMARY KEY - главный уникальный номер строки. По нему база точно понимает, о какой записи речь.',
-    analogy: 'Как номер паспорта для человека или номер заказа для документа.',
+    short: 'PRIMARY KEY - главный уникальный номер строки. Никакие две строки не могут иметь один и тот же id.',
+    analogy: 'Как номер паспорта для человека: имя можно поменять, но уникальный номер остаётся стабильной ссылкой.',
     tables: [
       {
-        title: 'clients',
+        title: 'customers',
         columns: ['id', 'name'],
         rows: [
-          [1, 'Ivan'],
-          [2, 'Anna'],
+          [5, 'Delta Shop'],
+          [6, 'North Market'],
         ],
       },
     ],
@@ -90,51 +120,51 @@ export const conceptExplanations: Record<string, ConceptExplanation> = {
       { part: 'id INT', meaning: 'создаём колонку id с числом' },
       { part: 'PRIMARY KEY', meaning: 'говорим базе: id уникален и главный для этой таблицы' },
     ],
-    erpExample: 'clients.id = 1 всегда означает конкретного клиента, даже если его имя потом изменится.',
-    commonMistake: 'Считать имя клиента хорошей связью. Имена повторяются и меняются, id стабильнее.',
-    remember: 'PRIMARY KEY = кто я.',
+    erpExample: "Если компания Delta Shop переименовалась в Delta Market, поиск по имени может сломаться. WHERE customer_id = 5 найдёт того же клиента всегда.",
+    commonMistake: 'Строить связь по имени клиента. Имена повторяются и меняются, поэтому ERP связывает таблицы по id.',
+    remember: 'PRIMARY KEY = стабильный уникальный id строки.',
   },
   'foreign-key': {
     id: 'foreign-key',
     title: 'FOREIGN KEY',
-    short: 'FOREIGN KEY - ссылка на запись в другой таблице. Он говорит: значение здесь должно существовать там.',
-    analogy: 'Как номер клиента в заказе. Заказ не хранит всего клиента внутри себя, он хранит ссылку на клиента.',
+    short: 'FOREIGN KEY - колонка в одной таблице, которая содержит id из другой таблицы.',
+    analogy: 'Как номер клиента в заказе: заказ не хранит всю карточку клиента, он хранит ссылку на неё.',
     tables: [
       {
-        title: 'clients',
+        title: 'customers',
         columns: ['id', 'name'],
         rows: [
-          [1, 'Ivan'],
-          [2, 'Anna'],
+          [5, 'Delta Shop'],
+          [6, 'North Market'],
         ],
       },
       {
         title: 'orders',
-        columns: ['id', 'client_id', 'sum'],
+        columns: ['id', 'customer_id', 'sum'],
         rows: [
-          [101, 1, 500],
-          [102, 2, 900],
+          [1004, 5, 780],
+          [1005, 999, 120],
         ],
       },
     ],
-    arrows: ['orders.client_id -> clients.id'],
+    arrows: ['orders.customer_id -> customers.id'],
     sql: `CREATE TABLE orders (
   id INT PRIMARY KEY,
-  client_id INT,
+  customer_id INT,
   total DECIMAL(10,2),
 
-  FOREIGN KEY (client_id)
-    REFERENCES clients(id)
+  FOREIGN KEY (customer_id)
+    REFERENCES customers(id)
 );`,
     breakdown: [
-      { part: 'client_id INT', meaning: 'в заказе есть колонка с номером клиента' },
-      { part: 'FOREIGN KEY (client_id)', meaning: 'говорим: client_id - внешний ключ в таблице orders' },
-      { part: 'REFERENCES clients(id)', meaning: 'значение client_id должно существовать в clients.id' },
-      { part: 'orders.client_id -> clients.id', meaning: 'каждый заказ указывает на клиента по id' },
+      { part: 'customer_id INT', meaning: 'в заказе есть колонка с номером клиента' },
+      { part: 'FOREIGN KEY (customer_id)', meaning: 'говорим: customer_id - внешний ключ в таблице orders' },
+      { part: 'REFERENCES customers(id)', meaning: 'значение customer_id должно существовать в customers.id' },
+      { part: 'orders.customer_id -> customers.id', meaning: 'каждый заказ указывает на клиента по id' },
     ],
-    erpExample: 'Если в orders.client_id записать 999, а клиента 999 нет, ERP получит заказ без клиента. FOREIGN KEY запрещает такую плохую связь.',
-    commonMistake: 'Думать, что FOREIGN KEY хранит всю строку клиента. Нет: он хранит только id-ссылку.',
-    remember: 'PRIMARY KEY = кто я. FOREIGN KEY = на кого я ссылаюсь.',
+    erpExample: 'В orders.customer_id значение 5 означает: этот заказ принадлежит клиенту с id = 5 из customers.',
+    commonMistake: 'Если в orders.customer_id написано 999, а клиента 999 в customers нет, получается orphan record: запись указывает в никуда.',
+    remember: 'PRIMARY KEY = кто я. FOREIGN KEY = на чей id я ссылаюсь.',
   },
   'select-from-where': {
     id: 'select-from-where',
