@@ -1089,7 +1089,7 @@ function FoundationPrimer({ onOpenTables }: { onOpenTables?: () => void }) {
         <Card className="p-4 md:p-6">
           <h3 className="text-xl font-semibold text-white">Как таблицы разговаривают друг с другом</h3>
           <p className="mt-2 text-sm text-slate-400">Связь строится не по имени клиента, а по числовым id. Так ERP не путается, если название клиента изменится.</p>
-          <div className="mt-5 grid gap-3 lg:grid-cols-[1fr_auto_1fr_auto_1fr] lg:items-center">
+          <div className="mt-5 grid gap-3">
             <RelationNode title="customers" main="id = 5" detail="Delta Shop" tone="teal" />
             <RelationArrow label="customer_id" />
             <RelationNode title="orders" main="id = 1004" detail="customer_id = 5" tone="blue" />
@@ -1409,7 +1409,7 @@ function RelationNode({ title, main, detail, tone }: { title: string; main: stri
   }
 
   return (
-    <div className={cn('rounded-lg border p-4', tones[tone])}>
+    <div className={cn('min-w-0 rounded-lg border p-4', tones[tone])}>
       <p className="font-mono text-sm font-semibold">{title}</p>
       <p className="mt-2 text-lg font-semibold text-white">{main}</p>
       <p className="mt-1 text-sm">{detail}</p>
@@ -1419,10 +1419,10 @@ function RelationNode({ title, main, detail, tone }: { title: string; main: stri
 
 function RelationArrow({ label }: { label: string }) {
   return (
-    <div className="flex items-center justify-center text-xs text-slate-400 lg:flex-col">
-      <span className="hidden h-px w-10 bg-slate-700 lg:block" />
-      <span className="rounded-full border border-slate-700 bg-slate-900 px-3 py-1 font-mono">{label}</span>
-      <span className="hidden h-px w-10 bg-slate-700 lg:block" />
+    <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-3 text-xs text-slate-400">
+      <span className="h-px bg-slate-700" />
+      <span className="max-w-full rounded-full border border-slate-700 bg-slate-900 px-3 py-1 font-mono">↓ {label}</span>
+      <span className="h-px bg-slate-700" />
     </div>
   )
 }
@@ -2218,7 +2218,7 @@ function ModulesView({
         })}
       </Card>
 
-      <div className="w-full max-w-full min-w-0 space-y-6 xl:mx-auto xl:max-w-6xl">
+      <div className="w-full max-w-full min-w-0 space-y-6 xl:mx-auto xl:max-w-7xl">
         <Card className="p-4 md:p-6">
           <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
             <div className="min-w-0">
@@ -2677,6 +2677,8 @@ function SyntaxExplainer({ sql }: { sql: string }) {
 
 function TaskCard({ title, prompt, sql, hint }: { title: string; prompt: string; sql: string; hint: string }) {
   const [showHint, setShowHint] = useState(false)
+  const [showSolution, setShowSolution] = useState(false)
+  const [draft, setDraft] = useState('')
 
   return (
     <Card className="p-6">
@@ -2690,13 +2692,30 @@ function TaskCard({ title, prompt, sql, hint }: { title: string; prompt: string;
           {showHint ? 'Скрыть подсказку' : 'Показать подсказку'}
         </Button>
       </div>
-      <div className="mt-5"><SqlCode>{sql}</SqlCode></div>
-      <p className="mt-3 text-sm text-slate-500">Сначала выполни запрос в песочнице и попробуй объяснить результат своими словами.</p>
+      <div className="mt-5">
+        <label htmlFor={`${title}-draft`} className="text-sm font-semibold text-white">Твой SQL или объяснение</label>
+        <textarea
+          id={`${title}-draft`}
+          value={draft}
+          onChange={(event) => setDraft(event.target.value)}
+          placeholder="Напиши запрос сам: SELECT ... FROM ... WHERE ..."
+          className="mt-3 min-h-36 w-full resize-y rounded-md border border-slate-800 bg-slate-950 p-4 font-mono text-[0.95rem] leading-7 text-slate-100 outline-none focus:border-teal-400"
+          spellCheck={false}
+        />
+      </div>
+      <p className="mt-3 text-sm text-slate-500">Сначала напиши свой вариант. Потом открой подсказку или эталон и сравни логику, а не только текст.</p>
       {showHint && (
         <div className="mt-4 rounded-md border border-teal-400/20 bg-teal-400/10 p-4 text-sm text-teal-100">
           {hint}
         </div>
       )}
+      <div className="mt-4 flex flex-wrap gap-2">
+        <Button variant="ghost" onClick={() => setDraft(sql)}>Вставить эталон в поле</Button>
+        <Button variant="secondary" onClick={() => setShowSolution((value) => !value)}>
+          {showSolution ? 'Скрыть эталон' : 'Показать эталон'}
+        </Button>
+      </div>
+      {showSolution && <div className="mt-4"><SqlCode>{sql}</SqlCode></div>}
     </Card>
   )
 }
@@ -2817,7 +2836,10 @@ function SqlSandbox({ initialSql }: { initialSql: string }) {
 
   const openTask = (task: SqlTask) => {
     setSelectedTaskId(task.id)
-    setSql(task.starterSql)
+    setSql(`-- ${task.title}
+-- ${task.description}
+-- Напиши свой SQL ниже. Решение можно открыть отдельно.
+`)
     setShowHint(false)
     setShowSolution(false)
     setTaskMessage('')
@@ -2916,6 +2938,7 @@ LIMIT 10;`)
               <div className="mt-3 flex flex-wrap gap-2">
                 <Button variant="secondary" onClick={() => setShowHint((value) => !value)}>Показать подсказку</Button>
                 <Button variant="secondary" onClick={() => setShowSolution((value) => !value)}>Показать решение</Button>
+                <Button variant="ghost" onClick={() => setSql(selectedTask.starterSql)}>Вставить заготовку</Button>
                 <Button onClick={compareWithTask}>Сравнить с эталоном</Button>
               </div>
               {showHint && (
@@ -3026,6 +3049,8 @@ function PracticeView({ onUseTask }: { onUseTask: (moduleId: string, starterSql:
 
 function PracticeTaskCard({ module, onUseTask }: { module: CourseModule; onUseTask: (moduleId: string, starterSql: string) => void }) {
   const [showHint, setShowHint] = useState(false)
+  const [showSolution, setShowSolution] = useState(false)
+  const [draft, setDraft] = useState('')
 
   return (
     <Card className="p-5">
@@ -3035,16 +3060,27 @@ function PracticeTaskCard({ module, onUseTask }: { module: CourseModule; onUseTa
       </div>
       <h3 className="mt-3 text-lg font-semibold text-white">{module.task.title}</h3>
       <p className="mt-2 text-sm text-slate-300">{module.task.prompt}</p>
-      <div className="mt-4"><SqlCode>{module.task.starterSql}</SqlCode></div>
+      <textarea
+        value={draft}
+        onChange={(event) => setDraft(event.target.value)}
+        placeholder="Сначала напиши свой SQL здесь..."
+        className="mt-4 min-h-32 w-full resize-y rounded-md border border-slate-800 bg-slate-950 p-4 font-mono text-[0.95rem] leading-7 text-slate-100 outline-none focus:border-teal-400"
+        spellCheck={false}
+      />
       <div className="mt-4 flex flex-wrap gap-2">
-        <Button variant="secondary" onClick={() => onUseTask(module.id, module.task.starterSql)}>Открыть в песочнице</Button>
+        <Button variant="secondary" onClick={() => onUseTask(module.id, `-- ${module.task.title}
+-- ${module.task.prompt}
+-- Напиши свой SQL ниже.
+`)}>Открыть задание в песочнице</Button>
         <Button variant="ghost" onClick={() => setShowHint((value) => !value)}>{showHint ? 'Скрыть разбор' : 'Показать разбор'}</Button>
+        <Button variant="ghost" onClick={() => setShowSolution((value) => !value)}>{showSolution ? 'Скрыть эталон' : 'Показать эталон'}</Button>
       </div>
       {showHint && (
         <div className="mt-4 rounded-md border border-teal-400/20 bg-teal-400/10 p-4 text-sm text-teal-100">
           {module.task.expectedHint}
         </div>
       )}
+      {showSolution && <div className="mt-4"><SqlCode>{module.task.starterSql}</SqlCode></div>}
     </Card>
   )
 }

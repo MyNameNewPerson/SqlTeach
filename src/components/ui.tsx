@@ -20,7 +20,7 @@ export function Button({
   return (
     <button
       className={cn(
-        'pointer-events-auto inline-flex min-h-10 max-w-full min-w-0 items-center justify-center gap-2 rounded-md border px-3 py-2 text-center text-sm font-semibold transition active:scale-95 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-300 disabled:cursor-not-allowed disabled:opacity-50',
+        'pointer-events-auto inline-flex min-h-11 max-w-full min-w-0 items-center justify-center gap-2 rounded-md border px-3.5 py-2.5 text-center text-[0.95rem] font-semibold transition active:scale-95 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-300 disabled:cursor-not-allowed disabled:opacity-50',
         variants[variant],
         className,
       )}
@@ -44,7 +44,7 @@ export function Badge({
     blue: 'border-sky-400/30 bg-sky-400/10 text-sky-200',
   }
 
-  return <span className={cn('inline-flex max-w-full items-center rounded-full border px-2.5 py-1 text-xs font-medium', tones[tone])}>{children}</span>
+  return <span className={cn('inline-flex max-w-full items-center rounded-full border px-2.5 py-1 text-[0.78rem] font-medium', tones[tone])}>{children}</span>
 }
 
 export function Progress({ value }: { value: number }) {
@@ -57,7 +57,7 @@ export function Progress({ value }: { value: number }) {
 
 export function SqlCode({ children }: { children: string }) {
   return (
-    <pre className="max-w-full overflow-x-auto whitespace-pre rounded-md border border-slate-800 bg-slate-950 p-4 text-left text-sm leading-6 text-slate-100">
+    <pre className="max-w-full overflow-x-auto whitespace-pre rounded-md border border-slate-800 bg-slate-950 p-4 text-left text-[0.95rem] leading-7 text-slate-100">
       <code>{children}</code>
     </pre>
   )
