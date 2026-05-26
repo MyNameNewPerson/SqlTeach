@@ -87,6 +87,591 @@ const interviewFormula = [
   'Осторожность: перед UPDATE делаю SELECT, транзакцию и rollback-план.',
 ]
 
+const conceptDeepDives: Record<string, {
+  why: string
+  readOrder: string[]
+  examples: Array<{ title: string; sql: string; explanation: string }>
+  interview: string
+  memory: string
+}> = {
+  'table-basics': {
+    why: 'Эта подтема нужна, чтобы ученик не думал о базе как о чёрном ящике. На собеседовании важно спокойно сказать, где лежит клиент, где заказ, где оплата и почему это разные таблицы.',
+    readOrder: [
+      'Сначала назови таблицу: customers, orders или payments.',
+      'Потом найди строку: один клиент, один заказ или один платёж.',
+      'Потом смотри колонки: id, status, amount, order_date.',
+      'Ячейка - это конкретное значение, например status = payment_pending.',
+    ],
+    examples: [
+      {
+        title: 'Посмотреть клиентов',
+        sql: `SELECT id, name, city
+FROM customers;`,
+        explanation: 'SELECT выбирает три колонки, FROM говорит, что берём их из таблицы customers.',
+      },
+      {
+        title: 'Посмотреть заказы',
+        sql: `SELECT id, customer_id, status, total_amount
+FROM orders;`,
+        explanation: 'customer_id показывает связь заказа с клиентом, но сам клиент хранится в другой таблице.',
+      },
+    ],
+    interview: 'Я сначала определяю главную таблицу процесса: для заказа это orders, для оплаты payments, для ошибок интеграции integration_logs.',
+    memory: 'Таблица - лист. Строка - запись. Колонка - свойство. Ячейка - значение.',
+  },
+  'data-types': {
+    why: 'Типы данных нужны, чтобы фильтры работали предсказуемо. Новичок часто ставит кавычки везде и потом не понимает, почему база не нашла строку.',
+    readOrder: [
+      'Текст сравнивай в кавычках: status = \'paid\'.',
+      'Числа сравнивай без кавычек: id = 1004.',
+      'Даты пиши в кавычках в формате YYYY-MM-DD.',
+      'Сначала проверь тип колонки, потом пиши WHERE.',
+    ],
+    examples: [
+      {
+        title: 'Числовой id',
+        sql: `SELECT id, status
+FROM orders
+WHERE id = 1004;`,
+        explanation: 'id - число, поэтому 1004 пишется без кавычек.',
+      },
+      {
+        title: 'Текстовый статус и дата',
+        sql: `SELECT id, status, order_date
+FROM orders
+WHERE status = 'paid'
+  AND order_date = '2026-02-13';`,
+        explanation: 'status и order_date записаны в кавычках, потому что это текстовое значение и дата.',
+      },
+    ],
+    interview: 'Я смотрю на тип поля: id и amount фильтрую как числа, status и date пишу в кавычках.',
+    memory: 'Кавычки: текст и дата. Без кавычек: число.',
+  },
+  'primary-key': {
+    why: 'PRIMARY KEY объясняет, почему ERP связывает данные по id, а не по имени. Это основа почти всех JOIN-запросов.',
+    readOrder: [
+      'Найди колонку id в родительской таблице.',
+      'Проверь, что каждое значение id уникально.',
+      'Используй id как стабильный адрес строки.',
+      'Не строй связи по имени клиента или названию товара.',
+    ],
+    examples: [
+      {
+        title: 'Найти клиента по id',
+        sql: `SELECT id, name, city
+FROM customers
+WHERE id = 5;`,
+        explanation: 'Даже если название клиента изменится, id = 5 останется той же записью.',
+      },
+      {
+        title: 'Увидеть id товаров',
+        sql: `SELECT id, name, price
+FROM products
+ORDER BY id;`,
+        explanation: 'id товара нужен, чтобы order_items мог ссылаться на product_id.',
+      },
+    ],
+    interview: 'PRIMARY KEY - это уникальный id строки. Он защищает связи от дублей, переименований и путаницы.',
+    memory: 'PRIMARY KEY = постоянный адрес записи.',
+  },
+  'foreign-key': {
+    why: 'FOREIGN KEY показывает, как таблицы разговаривают друг с другом. Без него ученик не поймёт, почему заказ хранит customer_id, а не имя клиента.',
+    readOrder: [
+      'Найди дочернюю таблицу: orders, payments, order_items.',
+      'Найди колонку-ссылку: customer_id, order_id, product_id.',
+      'Найди родительскую таблицу: customers, orders, products.',
+      'Прочитай связь как стрелку: orders.customer_id -> customers.id.',
+    ],
+    examples: [
+      {
+        title: 'Заказы клиента 5',
+        sql: `SELECT id, customer_id, status
+FROM orders
+WHERE customer_id = 5;`,
+        explanation: 'customer_id = 5 означает, что эти заказы принадлежат клиенту с customers.id = 5.',
+      },
+      {
+        title: 'Платежи заказа 1004',
+        sql: `SELECT id, order_id, amount, status
+FROM payments
+WHERE order_id = 1004;`,
+        explanation: 'order_id связывает оплату с заказом из таблицы orders.',
+      },
+    ],
+    interview: 'FOREIGN KEY - это ссылка из одной таблицы на id другой таблицы. Так ERP понимает, какой клиент сделал заказ и какой платёж относится к заказу.',
+    memory: 'FOREIGN KEY = стрелка на чужой id.',
+  },
+  'select-from-where': {
+    why: 'Это первая рабочая форма SQL. С неё начинается почти любое расследование: выбрать нужные колонки, выбрать таблицу, оставить нужные строки.',
+    readOrder: [
+      'FROM: сначала мысленно выбери главную таблицу, хотя в SQL она стоит второй строкой.',
+      'WHERE: затем сузь строки до нужного заказа, клиента, периода или статуса.',
+      'SELECT: в конце реши, какие колонки нужны человеку для вывода.',
+      'На собеседовании объясняй запрос именно в таком порядке: откуда, какие строки, что показать.',
+    ],
+    examples: [
+      {
+        title: 'Найти заказ 1004',
+        sql: `SELECT id, customer_id, status, total_amount
+FROM orders
+WHERE id = 1004;`,
+        explanation: 'Главная таблица orders, фильтр по одному заказу, выводим поля для диагностики.',
+      },
+      {
+        title: 'Найти активных клиентов',
+        sql: `SELECT id, name, city
+FROM customers
+WHERE active = 1;`,
+        explanation: 'active = 1 оставляет только клиентов, которые сейчас используются в ERP.',
+      },
+    ],
+    interview: 'Я начинаю с главной таблицы, ставлю WHERE, чтобы не читать всю базу, и выбираю только поля, которые нужны для вывода.',
+    memory: 'Читать: FROM -> WHERE -> SELECT. Писать: SELECT -> FROM -> WHERE.',
+  },
+  'where-filters': {
+    why: 'Фильтры превращают базу из огромной простыни в короткий список строк. Для ERP-собеса это навык быстро найти нужные заказы, оплаты и ошибки.',
+    readOrder: [
+      'WHERE вводит фильтр.',
+      'AND значит, что должны совпасть все условия.',
+      'OR значит, что достаточно одного условия.',
+      'IN заменяет несколько OR по одной колонке.',
+      'BETWEEN включает обе границы диапазона.',
+    ],
+    examples: [
+      {
+        title: 'Заказы в проблемных статусах',
+        sql: `SELECT id, status, order_date
+FROM orders
+WHERE status IN ('new', 'payment_pending');`,
+        explanation: 'IN короче, чем status = \'new\' OR status = \'payment_pending\'.',
+      },
+      {
+        title: 'Заказы за февраль',
+        sql: `SELECT id, status, order_date
+FROM orders
+WHERE order_date BETWEEN '2026-02-01' AND '2026-02-28';`,
+        explanation: 'BETWEEN берёт даты включительно: и 1 февраля, и 28 февраля попадают в результат.',
+      },
+    ],
+    interview: 'WHERE сужает расследование. Я комбинирую status, date и id, чтобы проверить ровно нужный кусок ERP-процесса.',
+    memory: 'WHERE - сито. AND - оба. OR - любой. IN - список. BETWEEN - коридор.',
+  },
+  'like-patterns': {
+    why: 'LIKE нужен, когда точного значения нет, но есть кусок текста: слово в логе, часть артикула, часть имени клиента.',
+    readOrder: [
+      'Выбери текстовую колонку: message, name, sku.',
+      'Поставь LIKE вместо =.',
+      'Добавь % слева и справа, если ищешь слово внутри строки.',
+      'Помни: без % это почти точное сравнение.',
+    ],
+    examples: [
+      {
+        title: 'Найти ошибки про клиента',
+        sql: `SELECT id, source_system, message
+FROM integration_logs
+WHERE message LIKE '%customer%';`,
+        explanation: '%customer% ищет слово customer в любом месте сообщения.',
+      },
+      {
+        title: 'Найти товары по артикулу',
+        sql: `SELECT id, sku, name
+FROM products
+WHERE sku LIKE 'ERP-%';`,
+        explanation: 'ERP-% означает: строка начинается с ERP-, дальше может быть любой текст.',
+      },
+    ],
+    interview: 'LIKE использую для разведки по тексту, особенно в integration_logs, когда знаю часть сообщения ошибки.',
+    memory: '% = любой хвост текста.',
+  },
+  'alias-as': {
+    why: 'Алиасы нужны, чтобы запрос с несколькими таблицами читался коротко, а одинаковые колонки не путались между собой.',
+    readOrder: [
+      'orders o: o теперь короткое имя таблицы orders.',
+      'payments p: p теперь короткое имя таблицы payments.',
+      'o.status - статус заказа.',
+      'p.status - статус платежа.',
+      'AS payment_status меняет подпись колонки в результате, не меняя базу.',
+    ],
+    examples: [
+      {
+        title: 'Два статуса без путаницы',
+        sql: `SELECT o.status AS order_status,
+       p.status AS payment_status
+FROM orders o
+LEFT JOIN payments p ON p.order_id = o.id;`,
+        explanation: 'AS делает результат понятным: видно, где статус заказа, а где статус оплаты.',
+      },
+      {
+        title: 'Короткие имена таблиц',
+        sql: `SELECT o.id, o.total_amount
+FROM orders o
+WHERE o.id = 1004;`,
+        explanation: 'o - алиас orders. В простом запросе он не обязателен, но готовит к JOIN.',
+      },
+    ],
+    interview: 'Алиас - это короткое имя таблицы или понятное имя колонки в результате. Он не меняет структуру базы.',
+    memory: 'Алиас таблицы = короткое имя. AS = подпись в отчёте.',
+  },
+  'join-on': {
+    why: 'JOIN нужен, когда ответа нет в одной таблице. Заказ лежит в orders, имя клиента в customers, оплата в payments, поэтому данные приходится соединять по id.',
+    readOrder: [
+      'Левая таблица - та, которая стоит после FROM. В FROM orders o левой базовой таблицей будет orders.',
+      'JOIN customers c подключает правую таблицу customers.',
+      'ON c.id = o.customer_id объясняет правило связи.',
+      'После JOIN можно выбрать колонки из обеих таблиц: o.id и c.name.',
+    ],
+    examples: [
+      {
+        title: 'Заказ + клиент',
+        sql: `SELECT o.id, c.name, o.status
+FROM orders o
+JOIN customers c ON c.id = o.customer_id;`,
+        explanation: 'ON связывает customer_id из заказа с id клиента.',
+      },
+      {
+        title: 'Позиции заказа + товары',
+        sql: `SELECT oi.order_id, p.name, oi.quantity
+FROM order_items oi
+JOIN products p ON p.id = oi.product_id
+WHERE oi.order_id = 1004;`,
+        explanation: 'order_items хранит product_id, а название товара берётся из products.',
+      },
+    ],
+    interview: 'JOIN соединяет таблицы по ключам. Я всегда объясняю ON: какая колонка из одной таблицы равна какой колонке из другой.',
+    memory: 'JOIN = подключи таблицу. ON = правило склейки.',
+  },
+  'left-vs-inner-join': {
+    why: 'Разница INNER и LEFT нужна для диагностики. INNER JOIN может спрятать проблему, а LEFT JOIN оставляет строки слева и показывает NULL справа.',
+    readOrder: [
+      'Левая таблица - таблица после FROM. В FROM orders o это orders.',
+      'LEFT JOIN сохраняет все строки из orders.',
+      'Если клиента справа нет, колонки customers будут NULL.',
+      'WHERE c.id IS NULL оставляет только строки, где связь не нашлась.',
+    ],
+    examples: [
+      {
+        title: 'Найти заказы без клиента',
+        sql: `SELECT o.id, o.customer_id
+FROM orders o
+LEFT JOIN customers c ON c.id = o.customer_id
+WHERE c.id IS NULL;`,
+        explanation: 'orders - левая таблица. Заказ не исчезает, даже если клиента справа нет.',
+      },
+      {
+        title: 'Платежи без заказа',
+        sql: `SELECT p.id, p.order_id, p.amount
+FROM payments p
+LEFT JOIN orders o ON o.id = p.order_id
+WHERE o.id IS NULL;`,
+        explanation: 'payments теперь левая таблица. Так ищем оплату, которая указывает на несуществующий заказ.',
+      },
+    ],
+    interview: 'INNER JOIN беру для отчётов по корректным связям. LEFT JOIN беру для диагностики, чтобы не потерять проблемную строку.',
+    memory: 'LEFT = все слева остаются. IS NULL = справа не нашлось.',
+  },
+  'aggregates-group-by': {
+    why: 'Агрегации нужны для отчётов: не отдельные строки, а итоги по статусам, клиентам, товарам.',
+    readOrder: [
+      'FROM выбирает таблицу с исходными строками.',
+      'GROUP BY решает, по чему собрать группы.',
+      'COUNT считает строки внутри группы.',
+      'SUM складывает суммы внутри группы.',
+      'SELECT показывает название группы и расчёты.',
+    ],
+    examples: [
+      {
+        title: 'Сколько заказов в каждом статусе',
+        sql: `SELECT status, COUNT(*) AS orders_count
+FROM orders
+GROUP BY status;`,
+        explanation: 'Каждый статус становится отдельной группой.',
+      },
+      {
+        title: 'Сумма заказов по клиентам',
+        sql: `SELECT customer_id, SUM(total_amount) AS total
+FROM orders
+GROUP BY customer_id;`,
+        explanation: 'GROUP BY customer_id собирает все заказы одного клиента в одну группу.',
+      },
+    ],
+    interview: 'GROUP BY использую, когда вопрос звучит “сколько”, “на какую сумму”, “по каждому статусу или клиенту”.',
+    memory: 'GROUP BY = по чему раскладываем кучки.',
+  },
+  having: {
+    why: 'HAVING нужен, когда фильтр применяется не к отдельным строкам, а к уже посчитанным группам.',
+    readOrder: [
+      'WHERE фильтрует строки до группировки.',
+      'GROUP BY собирает группы.',
+      'COUNT или SUM считает результат в группе.',
+      'HAVING оставляет только группы, которые прошли условие.',
+    ],
+    examples: [
+      {
+        title: 'Клиенты с двумя заказами и больше',
+        sql: `SELECT customer_id, COUNT(*) AS orders_count
+FROM orders
+GROUP BY customer_id
+HAVING COUNT(*) >= 2;`,
+        explanation: 'COUNT(*) появляется после группировки, поэтому условие пишется в HAVING.',
+      },
+      {
+        title: 'Статусы с суммой больше 1000',
+        sql: `SELECT status, SUM(total_amount) AS total
+FROM orders
+GROUP BY status
+HAVING SUM(total_amount) > 1000;`,
+        explanation: 'WHERE здесь не подойдёт, потому что SUM считается уже после GROUP BY.',
+      },
+    ],
+    interview: 'WHERE фильтрует сырьё, HAVING фильтрует итоговые группы.',
+    memory: 'WHERE до групп. HAVING после групп.',
+  },
+  'null-coalesce': {
+    why: 'NULL часто встречается в ERP: нет города, нет даты оплаты, нет связанной строки после LEFT JOIN. Его нельзя проверять обычным равенством.',
+    readOrder: [
+      'NULL означает: значения нет или оно неизвестно.',
+      'IS NULL ищет пустые значения.',
+      'IS NOT NULL ищет заполненные значения.',
+      'COALESCE показывает запасной текст вместо NULL.',
+    ],
+    examples: [
+      {
+        title: 'Клиенты без города',
+        sql: `SELECT id, name, city
+FROM customers
+WHERE city IS NULL;`,
+        explanation: 'Для NULL нужен IS NULL, а не city = NULL.',
+      },
+      {
+        title: 'Подставить подпись вместо NULL',
+        sql: `SELECT id, name, COALESCE(city, 'city_missing') AS city_label
+FROM customers;`,
+        explanation: 'COALESCE не меняет базу, он только делает вывод понятнее.',
+      },
+    ],
+    interview: 'NULL - это не ноль и не пустая строка. Я проверяю его через IS NULL и показываю понятный вывод через COALESCE.',
+    memory: 'NULL не равен ничему. Поэтому IS NULL.',
+  },
+  distinct: {
+    why: 'DISTINCT полезен для разведки: быстро понять, какие статусы, города или источники вообще есть в данных.',
+    readOrder: [
+      'Выбери одну или несколько колонок.',
+      'DISTINCT уберёт повторяющиеся комбинации этих колонок.',
+      'ORDER BY сделает список читаемым.',
+      'Не используй DISTINCT, чтобы скрыть проблему дублей.',
+    ],
+    examples: [
+      {
+        title: 'Какие статусы есть у заказов',
+        sql: `SELECT DISTINCT status
+FROM orders
+ORDER BY status;`,
+        explanation: 'Каждый статус появится один раз.',
+      },
+      {
+        title: 'Какие системы пишут логи',
+        sql: `SELECT DISTINCT source_system
+FROM integration_logs
+ORDER BY source_system;`,
+        explanation: 'Так можно понять, откуда вообще приходят интеграционные события.',
+      },
+    ],
+    interview: 'DISTINCT помогает быстро увидеть уникальные значения, но если есть дубли, я отдельно ищу их причину.',
+    memory: 'DISTINCT = список без повторов.',
+  },
+  'exists-not-exists': {
+    why: 'EXISTS проверяет наличие связанной строки без размножения результата. Это удобно, когда нужно спросить: есть ли успешная оплата по каждому заказу.',
+    readOrder: [
+      'Внешний запрос идёт по orders o: берём один заказ за другим.',
+      'Для каждого заказа внутренний запрос смотрит payments p.',
+      'p.order_id = o.id связывает внутренний платёж с текущим заказом.',
+      'p.status = \'captured\' уточняет, что нужна именно успешная оплата.',
+      'SELECT 1 значит: колонки не важны, важен факт найденной строки.',
+      'NOT EXISTS оставляет заказы, для которых такая строка не найдена.',
+    ],
+    examples: [
+      {
+        title: 'Заказы без успешной оплаты',
+        sql: `SELECT o.id, o.status
+FROM orders o
+WHERE NOT EXISTS (
+  SELECT 1
+  FROM payments p
+  WHERE p.order_id = o.id
+    AND p.status = 'captured'
+);`,
+        explanation: 'Для каждого заказа спрашиваем: существует ли captured-платёж. Если нет - заказ остаётся в результате.',
+      },
+      {
+        title: 'Клиенты, у которых есть заказы',
+        sql: `SELECT c.id, c.name
+FROM customers c
+WHERE EXISTS (
+  SELECT 1
+  FROM orders o
+  WHERE o.customer_id = c.id
+);`,
+        explanation: 'EXISTS оставляет клиента, если нашёлся хотя бы один заказ с customer_id этого клиента.',
+      },
+    ],
+    interview: 'EXISTS я использую как проверку “есть ли связанная строка”. SELECT 1 не выводит данные, а говорит базе: мне важен сам факт существования.',
+    memory: 'EXISTS = есть? NOT EXISTS = нет?',
+  },
+  'dml-transactions': {
+    why: 'На ERP-собеседовании важно показать осторожность. Читать данные можно смело, менять данные нужно только через проверку и транзакцию.',
+    readOrder: [
+      'Сначала SELECT с тем же WHERE, чтобы увидеть строки.',
+      'BEGIN открывает транзакцию.',
+      'UPDATE меняет только строки из WHERE.',
+      'SELECT после UPDATE проверяет результат.',
+      'ROLLBACK отменяет учебное изменение, COMMIT подтверждает реальное.',
+    ],
+    examples: [
+      {
+        title: 'Безопасная проверка UPDATE',
+        sql: `SELECT id, status
+FROM orders
+WHERE id = 1004;`,
+        explanation: 'Перед UPDATE сначала проверяем, что WHERE находит ровно нужный заказ.',
+      },
+      {
+        title: 'Изменение с откатом',
+        sql: `BEGIN;
+UPDATE orders
+SET status = 'paid'
+WHERE id = 1004;
+SELECT id, status FROM orders WHERE id = 1004;
+ROLLBACK;`,
+        explanation: 'ROLLBACK возвращает учебную базу в исходное состояние.',
+      },
+    ],
+    interview: 'Перед изменением данных я делаю SELECT, затем транзакцию, проверку результата и только потом COMMIT или ROLLBACK.',
+    memory: 'SELECT -> BEGIN -> UPDATE -> CHECK -> COMMIT/ROLLBACK.',
+  },
+  'on-delete': {
+    why: 'ON DELETE показывает, что будет с дочерними строками, если удалить родительскую запись. В ERP это риск потери заказов, платежей или истории.',
+    readOrder: [
+      'Родительская таблица: customers, orders, products.',
+      'Дочерняя таблица: orders, payments, order_items.',
+      'RESTRICT запрещает удаление, если есть дочерние строки.',
+      'CASCADE удаляет дочерние строки вместе с родителем.',
+      'SET NULL оставляет дочернюю строку, но очищает ссылку.',
+    ],
+    examples: [
+      {
+        title: 'Запретить удалить клиента с заказами',
+        sql: `FOREIGN KEY (customer_id)
+REFERENCES customers(id)
+ON DELETE RESTRICT;`,
+        explanation: 'RESTRICT защищает историю заказов от случайного удаления клиента.',
+      },
+      {
+        title: 'Опасный вариант',
+        sql: `FOREIGN KEY (order_id)
+REFERENCES orders(id)
+ON DELETE CASCADE;`,
+        explanation: 'CASCADE может удалить платежи вместе с заказом, поэтому в ERP его используют осторожно.',
+      },
+    ],
+    interview: 'ON DELETE - это политика поведения связей при удалении родителя. В ERP я не ставлю CASCADE без понимания бизнес-риска.',
+    memory: 'RESTRICT - стоп. CASCADE - удалить цепочкой. SET NULL - отвязать.',
+  },
+  'erp-debug-flow': {
+    why: 'ERP Engineer нужен не для красивого SQL, а для расследования симптома: пользователь видит проблему, инженер переводит её в проверяемые таблицы и запросы.',
+    readOrder: [
+      'Сначала формулируем симптом: что сломалось для пользователя.',
+      'Потом выбираем главную сущность: заказ, платёж, товар, лог.',
+      'Потом добавляем связанные таблицы.',
+      'Потом пишем SELECT, который проверяет гипотезу.',
+      'После результата делаем вывод, но не меняем данные без проверки.',
+    ],
+    examples: [
+      {
+        title: 'Оплата есть, статус старый',
+        sql: `SELECT o.id, o.status AS order_status,
+       p.status AS payment_status,
+       l.message
+FROM orders o
+LEFT JOIN payments p ON p.order_id = o.id
+LEFT JOIN integration_logs l ON l.entity_type = 'order' AND l.entity_id = o.id
+WHERE o.id = 1004;`,
+        explanation: 'Проверяем заказ, оплату и логи одной диагностической цепочкой.',
+      },
+      {
+        title: 'Ошибки интеграции по заказам',
+        sql: `SELECT source_system, entity_id, status, message
+FROM integration_logs
+WHERE entity_type = 'order'
+  AND status IN ('error', 'warning');`,
+        explanation: 'Логи часто объясняют, почему внешний процесс не обновил ERP.',
+      },
+    ],
+    interview: 'Я иду от симптома к таблицам: orders, payments, integration_logs. Потом проверяю связи и объясняю, что означает результат.',
+    memory: 'Симптом -> таблицы -> связи -> SELECT -> вывод -> осторожное действие.',
+  },
+  'bad-links': {
+    why: 'Плохие связи ломают отчёты и процессы: запись есть, но она указывает на несуществующего родителя. Такие строки надо уметь находить быстро.',
+    readOrder: [
+      'Выбери дочернюю таблицу слева: orders, payments или inventory.',
+      'LEFT JOIN подключает родительскую таблицу справа.',
+      'ON связывает FK с PK.',
+      'WHERE parent.id IS NULL оставляет строки, где родитель не найден.',
+    ],
+    examples: [
+      {
+        title: 'Заказы без клиента',
+        sql: `SELECT o.id, o.customer_id
+FROM orders o
+LEFT JOIN customers c ON c.id = o.customer_id
+WHERE c.id IS NULL;`,
+        explanation: 'customer_id заполнен, но клиента справа нет. Это orphan record.',
+      },
+      {
+        title: 'Остатки без товара',
+        sql: `SELECT i.id, i.product_id, i.qty
+FROM inventory i
+LEFT JOIN products p ON p.id = i.product_id
+WHERE p.id IS NULL;`,
+        explanation: 'Складская запись указывает на товар, которого нет в products.',
+      },
+    ],
+    interview: 'Orphan record ищу через LEFT JOIN к родительской таблице и WHERE parent.id IS NULL.',
+    memory: 'Дочерняя слева, родитель справа, NULL справа = связь сломана.',
+  },
+  'interview-answer-flow': {
+    why: 'Собеседование проверяет не зубрёжку, а ход мысли. Нужно показать, как ты превращаешь проблему ERP в проверку данных.',
+    readOrder: [
+      'Назови симптом.',
+      'Назови гипотезы.',
+      'Назови таблицы.',
+      'Покажи SELECT-запрос.',
+      'Объясни возможный вывод.',
+      'Скажи, что изменения делаешь только после проверки.',
+    ],
+    examples: [
+      {
+        title: 'Ответ по оплате',
+        sql: `SELECT o.id, o.status AS order_status,
+       p.status AS payment_status
+FROM orders o
+LEFT JOIN payments p ON p.order_id = o.id
+WHERE o.id = 1004;`,
+        explanation: 'Запрос показывает, прошла ли оплата и обновился ли статус заказа.',
+      },
+      {
+        title: 'Ответ по потерянному заказу в отчёте',
+        sql: `SELECT o.id, o.customer_id, c.name
+FROM orders o
+LEFT JOIN customers c ON c.id = o.customer_id
+WHERE c.id IS NULL;`,
+        explanation: 'Если INNER JOIN теряет заказ, LEFT JOIN покажет отсутствующую связь.',
+      },
+    ],
+    interview: 'Я бы начал с симптома, проверил главные таблицы через SELECT, не потерял проблемные строки через LEFT JOIN и менял бы данные только после подтверждения причины.',
+    memory: 'Симптом, гипотеза, таблицы, запрос, вывод, безопасность.',
+  },
+}
+
 function App() {
   const [activeView, setActiveView] = useState<ViewId>('dashboard')
   const [progress, setProgress] = useState<ProgressState>(() => loadProgress())
@@ -1445,10 +2030,10 @@ function ConceptExplanationSection({ concepts }: { concepts: ConceptExplanation[
     <Card className="p-5 md:p-6">
       <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
         <div>
-          <Badge tone="teal">главное объяснение</Badge>
-          <h3 className="mt-3 text-2xl font-semibold text-white">Понятно и по делу: что означает тема</h3>
+          <Badge tone="teal">вход в подтему</Badge>
+          <h3 className="mt-3 text-2xl font-semibold text-white">Зачем эта тема и как читать запрос</h3>
           <p className="mt-2 text-sm text-slate-400">
-            Формат как в хорошем ответе наставника: коротко, пример из жизни, мини-таблицы, SQL, разбор по кускам и типичная ошибка.
+            В каждой подтеме сначала разбираем, зачем она нужна в ERP, потом читаем SQL по шагам, смотрим примеры и готовим фразу для собеседования.
           </p>
         </div>
         <Badge tone="blue">↓ {concepts.length} тем ниже</Badge>
@@ -1463,6 +2048,8 @@ function ConceptExplanationSection({ concepts }: { concepts: ConceptExplanation[
 }
 
 function ConceptExplanationCard({ concept, defaultOpen }: { concept: ConceptExplanation; defaultOpen?: boolean }) {
+  const deepDive = conceptDeepDives[concept.id]
+
   return (
     <details open={defaultOpen} className="rounded-lg border border-slate-800 bg-slate-900/45">
       <summary className="cursor-pointer p-4 marker:text-teal-300">
@@ -1476,6 +2063,7 @@ function ConceptExplanationCard({ concept, defaultOpen }: { concept: ConceptExpl
             <InfoStrip title="ERP-пример" text={concept.erpExample} tone="blue" />
             <InfoStrip title="Частая ошибка" text={concept.commonMistake} tone="amber" />
             <InfoStrip title="Запомнить" text={concept.remember} tone="slate" />
+            {deepDive && <InfoStrip title="Зачем это нужно" text={deepDive.why} tone="slate" />}
           </div>
           <div className="space-y-4">
             {concept.tables && (
@@ -1497,8 +2085,43 @@ function ConceptExplanationCard({ concept, defaultOpen }: { concept: ConceptExpl
           </div>
         </div>
 
+        {deepDive && (
+          <div className="mt-5 grid gap-4 2xl:grid-cols-[0.85fr_1.15fr]">
+            <div className="rounded-md border border-slate-800 bg-slate-950/65 p-4">
+              <p className="text-sm font-semibold text-white">Как читать этот запрос</p>
+              <div className="mt-3 space-y-2">
+                {deepDive.readOrder.map((step, index) => (
+                  <div key={step} className="flex gap-3 rounded-md border border-slate-800 bg-slate-900/55 p-3">
+                    <span className="grid size-7 shrink-0 place-items-center rounded-md bg-teal-400 text-xs font-bold text-slate-950">{index + 1}</span>
+                    <p className="text-sm text-slate-300">{step}</p>
+                  </div>
+                ))}
+              </div>
+              <div className="mt-4 rounded-md border border-sky-400/20 bg-sky-400/10 p-3 text-sm text-sky-100">
+                <p className="font-semibold text-white">Фраза для собеседования</p>
+                <p className="mt-2">{deepDive.interview}</p>
+              </div>
+              <div className="mt-3 rounded-md border border-amber-400/20 bg-amber-400/10 p-3 text-sm text-amber-100">
+                <p className="font-semibold text-white">Метод запоминания</p>
+                <p className="mt-2">{deepDive.memory}</p>
+              </div>
+            </div>
+
+            <div className="space-y-3">
+              <p className="text-sm font-semibold text-white">Ещё рабочие примеры</p>
+              {deepDive.examples.map((example) => (
+                <div key={`${concept.id}-${example.title}`} className="rounded-md border border-slate-800 bg-slate-950/65 p-4">
+                  <p className="font-semibold text-teal-200">{example.title}</p>
+                  <div className="mt-3"><SqlCode>{example.sql}</SqlCode></div>
+                  <p className="mt-3 text-sm text-slate-300">{example.explanation}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
         <div className="mt-5">
-          <p className="text-sm font-semibold text-white">Разбираем по частям</p>
+          <p className="text-sm font-semibold text-white">Разбор синтаксиса по частям</p>
           <div className="mt-3 grid gap-3 xl:grid-cols-2">
             {concept.breakdown.map((item) => (
               <div key={`${concept.id}-${item.part}`} className="rounded-md border border-slate-800 bg-slate-950/65 p-3">
