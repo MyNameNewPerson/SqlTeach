@@ -932,106 +932,211 @@ function CourseMap({ progress, onSelect, onOpenModules }: { progress: ProgressSt
 
 function TablesView() {
   const [activeTableName, setActiveTableName] = useState(visualTables[0].name)
+  const [tableMode, setTableMode] = useState<'all' | 'single' | 'relations'>('all')
   const activeTable = visualTables.find((table) => table.name === activeTableName) ?? visualTables[0]
 
   return (
     <div className="space-y-6">
       <Card className="p-5 md:p-6">
         <Badge tone="teal">ERP data map</Badge>
-        <h2 className="mt-3 text-3xl font-semibold text-white">ERP-таблицы: посмотри данные глазами</h2>
+        <h2 className="mt-3 text-3xl font-semibold text-white">ERP-таблицы: что входит в нашу учебную БД</h2>
         <p className="mt-3 max-w-3xl text-slate-300">
-          Это учебная мини-база. Сначала изучи таблицы как обычные списки, потом переходи к SQL. Так проще понять, что именно делает запрос.
+          Здесь видно всю структуру базы: какие есть таблицы, какие в них столбцы, какие строки уже лежат внутри и как таблицы связаны между собой.
         </p>
-        <div className="mt-5 grid gap-3 md:grid-cols-3">
-          <InfoStrip title="PK" text="PRIMARY KEY. Главный id строки внутри своей таблицы." tone="teal" />
-          <InfoStrip title="FK" text="FOREIGN KEY. Колонка-ссылка на id другой таблицы." tone="blue" />
-          <InfoStrip title="Связь" text="Например orders.customer_id указывает на customers.id." tone="amber" />
+        <div className="mt-5 grid gap-3 sm:grid-cols-3">
+          {[
+            { id: 'all' as const, label: 'Все таблицы', description: 'полный обзор БД' },
+            { id: 'single' as const, label: 'Одна таблица', description: 'изучить подробно' },
+            { id: 'relations' as const, label: 'Связи', description: 'PK/FK стрелки' },
+          ].map((mode) => (
+            <button
+              key={mode.id}
+              type="button"
+              onClick={() => setTableMode(mode.id)}
+              className={cn(
+                'rounded-md border p-3 text-left transition',
+                tableMode === mode.id
+                  ? 'border-teal-400 bg-teal-400 text-slate-950'
+                  : 'border-slate-800 bg-slate-900 text-slate-200 hover:bg-slate-800',
+              )}
+            >
+              <p className="font-semibold">{mode.label}</p>
+              <p className={cn('mt-1 text-xs', tableMode === mode.id ? 'text-slate-800' : 'text-slate-400')}>{mode.description}</p>
+            </button>
+          ))}
         </div>
       </Card>
 
-      <div className="grid gap-6 xl:grid-cols-[280px_minmax(0,1fr)]">
-        <Card className="h-fit p-3 xl:sticky xl:top-28">
-          <p className="px-2 pb-3 text-sm font-semibold text-white">Таблицы базы</p>
-          <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-1">
-            {visualTables.map((table) => (
-              <button
-                key={table.name}
-                type="button"
-                onClick={() => setActiveTableName(table.name)}
+      {tableMode === 'all' && <AllTablesOverview onSelectTable={(name) => { setActiveTableName(name); setTableMode('single') }} />}
+
+      {tableMode === 'single' && (
+        <div className="grid gap-6 xl:grid-cols-[280px_minmax(0,1fr)]">
+          <Card className="h-fit p-3 xl:sticky xl:top-28">
+            <p className="px-2 pb-3 text-sm font-semibold text-white">Таблицы базы</p>
+            <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-1">
+              {visualTables.map((table) => (
+                <button
+                  key={table.name}
+                  type="button"
+                  onClick={() => setActiveTableName(table.name)}
+                  className={cn(
+                    'rounded-md border p-3 text-left transition',
+                    activeTable.name === table.name
+                      ? 'border-teal-400/50 bg-teal-400/10'
+                      : 'border-slate-800 bg-slate-900/60 hover:border-slate-700 hover:bg-slate-800',
+                  )}
+                >
+                  <p className="font-mono text-sm font-semibold text-white">{table.name}</p>
+                  <p className="mt-1 text-xs text-slate-400">{table.humanName}</p>
+                  <p className="mt-2 text-xs text-teal-200">{table.rows.length} строк · {table.columns.length} колонок</p>
+                </button>
+              ))}
+            </div>
+          </Card>
+
+          <div className="min-w-0 space-y-6">
+            <Card className="p-4 md:p-5">
+              <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+                <div>
+                  <Badge tone="teal">полная таблица</Badge>
+                  <h3 className="mt-3 font-mono text-2xl font-semibold text-white">{activeTable.name}</h3>
+                  <p className="mt-2 text-slate-300">{activeTable.purpose}</p>
+                </div>
+                <Badge tone="blue">{activeTable.rows.length} строк</Badge>
+              </div>
+              <div className="mt-5">
+                <FullDataTable table={activeTable} />
+              </div>
+            </Card>
+
+            <TableDetailsGrid table={activeTable} />
+          </div>
+        </div>
+      )}
+
+      {tableMode === 'relations' && <RelationsView />}
+    </div>
+  )
+}
+
+function AllTablesOverview({ onSelectTable }: { onSelectTable: (name: string) => void }) {
+  const totalRows = visualTables.reduce((sum, table) => sum + table.rows.length, 0)
+  const totalColumns = visualTables.reduce((sum, table) => sum + table.columns.length, 0)
+
+  return (
+    <div className="space-y-6">
+      <Card className="p-4 md:p-5">
+        <h3 className="text-xl font-semibold text-white">Состав базы данных</h3>
+        <div className="mt-4 grid gap-3 md:grid-cols-3">
+          <Metric label="Таблиц" value={String(visualTables.length)} />
+          <Metric label="Строк" value={String(totalRows)} />
+          <Metric label="Столбцов" value={String(totalColumns)} />
+        </div>
+        <div className="mt-5 grid gap-3 lg:grid-cols-2 xl:grid-cols-3">
+          {visualTables.map((table) => (
+            <button
+              key={table.name}
+              type="button"
+              onClick={() => onSelectTable(table.name)}
+              className="rounded-md border border-slate-800 bg-slate-900/55 p-4 text-left transition hover:border-teal-400/40 hover:bg-slate-800"
+            >
+              <p className="font-mono text-sm font-semibold text-teal-200">{table.name}</p>
+              <p className="mt-1 text-sm font-semibold text-white">{table.humanName}</p>
+              <p className="mt-2 text-sm text-slate-400">{table.purpose}</p>
+              <p className="mt-3 text-xs text-slate-500">{table.rows.length} строк · {table.columns.length} столбцов</p>
+            </button>
+          ))}
+        </div>
+      </Card>
+
+      {visualTables.map((table) => (
+        <Card key={table.name} className="p-4 md:p-5">
+          <div className="mb-4 flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+            <div>
+              <h3 className="font-mono text-2xl font-semibold text-white">{table.name}</h3>
+              <p className="mt-1 text-sm text-slate-400">{table.humanName}: {table.purpose}</p>
+            </div>
+            <Button variant="secondary" onClick={() => onSelectTable(table.name)}>Открыть подробно</Button>
+          </div>
+          <FullDataTable table={table} />
+        </Card>
+      ))}
+    </div>
+  )
+}
+
+function TableDetailsGrid({ table }: { table: VisualTable }) {
+  return (
+    <div className="grid gap-6 lg:grid-cols-[0.95fr_1.05fr]">
+      <Card className="p-4 md:p-5">
+        <h4 className="text-lg font-semibold text-white">Колонки таблицы</h4>
+        <div className="mt-4 grid gap-3">
+          {table.columns.map((column) => (
+            <div key={column.name} className="rounded-md border border-slate-800 bg-slate-900/55 p-3">
+              <p className="font-mono text-sm text-teal-200">
+                {column.name}
+                {column.kind === 'primary' && ' · PRIMARY KEY'}
+                {column.kind === 'foreign' && ' · FOREIGN KEY'}
+              </p>
+              <p className="mt-1 text-sm text-slate-300">{column.meaning}</p>
+            </div>
+          ))}
+        </div>
+      </Card>
+
+      <div className="space-y-6">
+        <Card className="p-4 md:p-5">
+          <h4 className="text-lg font-semibold text-white">Связи этой учебной ERP-базы</h4>
+          <div className="mt-4 space-y-2">
+            {tableRelations.map((relation) => (
+              <div
+                key={relation}
                 className={cn(
-                  'rounded-md border p-3 text-left transition',
-                  activeTable.name === table.name
-                    ? 'border-teal-400/50 bg-teal-400/10'
-                    : 'border-slate-800 bg-slate-900/60 hover:border-slate-700 hover:bg-slate-800',
+                  'rounded-md border px-3 py-2 font-mono text-sm',
+                  relation.startsWith(table.name) || relation.includes(`-> ${table.name}.`)
+                    ? 'border-teal-400/30 bg-teal-400/10 text-teal-100'
+                    : 'border-slate-800 bg-slate-900/55 text-slate-400',
                 )}
               >
-                <p className="font-mono text-sm font-semibold text-white">{table.name}</p>
-                <p className="mt-1 text-xs text-slate-400">{table.humanName}</p>
-                <p className="mt-2 text-xs text-teal-200">{table.rows.length} строк · {table.columns.length} колонок</p>
-              </button>
+                {relation}
+              </div>
             ))}
           </div>
         </Card>
 
-        <div className="min-w-0 space-y-6">
-          <Card className="p-4 md:p-5">
-            <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
-              <div>
-                <Badge tone="teal">полная таблица</Badge>
-                <h3 className="mt-3 font-mono text-2xl font-semibold text-white">{activeTable.name}</h3>
-                <p className="mt-2 text-slate-300">{activeTable.purpose}</p>
-              </div>
-              <Badge tone="blue">{activeTable.rows.length} строк</Badge>
-            </div>
-            <div className="mt-5">
-              <FullDataTable table={activeTable} />
-            </div>
-          </Card>
-
-          <div className="grid gap-6 lg:grid-cols-[0.95fr_1.05fr]">
-            <Card className="p-4 md:p-5">
-              <h4 className="text-lg font-semibold text-white">Колонки таблицы</h4>
-              <div className="mt-4 grid gap-3">
-                {activeTable.columns.map((column) => (
-                  <div key={column.name} className="rounded-md border border-slate-800 bg-slate-900/55 p-3">
-                    <p className="font-mono text-sm text-teal-200">
-                      {column.name}
-                      {column.kind === 'primary' && ' · PRIMARY KEY'}
-                      {column.kind === 'foreign' && ' · FOREIGN KEY'}
-                    </p>
-                    <p className="mt-1 text-sm text-slate-300">{column.meaning}</p>
-                  </div>
-                ))}
-              </div>
-            </Card>
-
-            <Card className="p-4 md:p-5">
-              <h4 className="text-lg font-semibold text-white">Связи этой учебной ERP-базы</h4>
-              <div className="mt-4 space-y-2">
-                {tableRelations.map((relation) => (
-                  <div
-                    key={relation}
-                    className={cn(
-                      'rounded-md border px-3 py-2 font-mono text-sm',
-                      relation.startsWith(activeTable.name) || relation.includes(`-> ${activeTable.name}.`)
-                        ? 'border-teal-400/30 bg-teal-400/10 text-teal-100'
-                        : 'border-slate-800 bg-slate-900/55 text-slate-400',
-                    )}
-                  >
-                    {relation}
-                  </div>
-                ))}
-              </div>
-            </Card>
-          </div>
-
-          <Card className="p-4 md:p-5">
-            <h4 className="text-lg font-semibold text-white">Открыть эту таблицу через SQL</h4>
-            <div className="mt-4"><SqlCode>{`SELECT *
-FROM ${activeTable.name};`}</SqlCode></div>
-          </Card>
-        </div>
+        <Card className="p-4 md:p-5">
+          <h4 className="text-lg font-semibold text-white">Открыть эту таблицу через SQL</h4>
+          <div className="mt-4"><SqlCode>{`SELECT *
+FROM ${table.name};`}</SqlCode></div>
+        </Card>
       </div>
+    </div>
+  )
+}
+
+function RelationsView() {
+  return (
+    <div className="space-y-6">
+      <Card className="p-5 md:p-6">
+        <h3 className="text-xl font-semibold text-white">Главная цепочка ERP</h3>
+        <div className="mt-5 grid gap-3 lg:grid-cols-[1fr_auto_1fr_auto_1fr] lg:items-center">
+          <RelationNode title="customers" main="id" detail="кто покупает" tone="teal" />
+          <RelationArrow label="orders.customer_id" />
+          <RelationNode title="orders" main="id" detail="заказ и статус" tone="blue" />
+          <RelationArrow label="payments.order_id" />
+          <RelationNode title="payments" main="id" detail="оплата заказа" tone="amber" />
+        </div>
+      </Card>
+      <Card className="p-5 md:p-6">
+        <h3 className="text-xl font-semibold text-white">Все связи</h3>
+        <div className="mt-4 grid gap-3 md:grid-cols-2">
+          {tableRelations.map((relation) => (
+            <div key={relation} className="rounded-md border border-slate-800 bg-slate-900/55 p-4 font-mono text-sm text-teal-200">
+              {relation}
+            </div>
+          ))}
+        </div>
+      </Card>
     </div>
   )
 }
