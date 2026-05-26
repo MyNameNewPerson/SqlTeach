@@ -21,7 +21,7 @@ import {
 } from 'lucide-react'
 import { erpCases, finalExam, interviewPrompts, modules, sqlReference } from './data/course'
 import { firstSqlStory, relationshipSteps, tableAnatomy, visualTables } from './data/foundation'
-import { beginnerGlossary, sourceTakeaways, syntaxDictionary, workedExamples } from './data/learning'
+import { beginnerGlossary, interviewCoverage, memoryMethod, recallCards, sourceTakeaways, syntaxDictionary, workedExamples } from './data/learning'
 import type { VisualTable } from './data/foundation'
 import type { WorkedExample } from './data/learning'
 import { schemaSummary, seedSql } from './lib/sqlSeed'
@@ -340,6 +340,7 @@ function Dashboard({
   return (
     <div className="space-y-4 md:space-y-6">
       <FoundationPrimer />
+      <MemoryMethodSection />
 
       <section className="grid gap-4 md:gap-6 md:grid-cols-1 xl:grid-cols-[1.35fr_0.65fr]">
         <Card className="overflow-hidden p-4 md:p-6 md:p-8">
@@ -601,6 +602,98 @@ function RelationArrow({ label }: { label: string }) {
   )
 }
 
+function MemoryMethodSection() {
+  return (
+    <section className="grid gap-4 xl:grid-cols-[0.95fr_1.05fr]">
+      <Card className="p-4 md:p-6">
+        <Badge tone="amber">метод запоминания</Badge>
+        <h3 className="mt-3 text-2xl font-semibold text-white">Как запоминать SQL, а не просто читать</h3>
+        <p className="mt-3 text-sm text-slate-400">
+          Рабочая схема для 3 дней: визуально увидеть данные, сказать задачу своими словами, запустить запрос, вспомнить без подсказки и повторить позже.
+        </p>
+        <div className="mt-5 grid gap-3 sm:grid-cols-2">
+          {memoryMethod.map((item) => (
+            <div key={item.title} className="rounded-md border border-slate-800 bg-slate-900/55 p-3">
+              <p className="font-semibold text-teal-200">{item.title}</p>
+              <p className="mt-2 text-sm text-slate-300">{item.text}</p>
+            </div>
+          ))}
+        </div>
+      </Card>
+      <MemoryTrainer />
+    </section>
+  )
+}
+
+function MemoryTrainer() {
+  const [openCard, setOpenCard] = useState(0)
+
+  return (
+    <Card className="p-4 md:p-6">
+      <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+        <div>
+          <Badge tone="teal">active recall</Badge>
+          <h3 className="mt-3 text-2xl font-semibold text-white">Тренажёр памяти</h3>
+          <p className="mt-2 text-sm text-slate-400">Сначала ответь сам, потом открой карточку. Так материал остаётся в голове.</p>
+        </div>
+        <Badge tone="blue">{openCard + 1}/{recallCards.length}</Badge>
+      </div>
+      <div className="mt-5 rounded-lg border border-slate-800 bg-slate-900/55 p-4">
+        <p className="text-sm text-slate-400">Вопрос</p>
+        <p className="mt-2 text-lg font-semibold text-white">{recallCards[openCard].question}</p>
+        <details className="mt-4 rounded-md border border-slate-800 bg-slate-950/70 p-3">
+          <summary className="cursor-pointer text-sm font-semibold text-teal-200">Показать ответ после попытки</summary>
+          <p className="mt-3 text-sm text-slate-300">{recallCards[openCard].answer}</p>
+        </details>
+      </div>
+      <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-4">
+        {recallCards.map((card, index) => (
+          <button
+            key={card.question}
+            type="button"
+            onClick={() => setOpenCard(index)}
+            className={cn(
+              'rounded-md border px-3 py-2 text-sm font-semibold transition',
+              openCard === index ? 'border-teal-400 bg-teal-400 text-slate-950' : 'border-slate-800 bg-slate-900 text-slate-300 hover:bg-slate-800',
+            )}
+          >
+            {index + 1}
+          </button>
+        ))}
+      </div>
+    </Card>
+  )
+}
+
+function CoverageMatrix() {
+  return (
+    <Card className="p-4 md:p-6">
+      <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+        <div>
+          <Badge tone="blue">покрытие собеседования</Badge>
+          <h3 className="mt-3 text-2xl font-semibold text-white">Что должно быть в голове к концу 3-го дня</h3>
+          <p className="mt-2 text-sm text-slate-400">Это не список “почитать”. Это проверка: можешь ли ты объяснить и применить навык на ERP-кейсе.</p>
+        </div>
+        <Badge tone="teal">{interviewCoverage.length} навыков</Badge>
+      </div>
+      <div className="mt-5 overflow-hidden rounded-lg border border-slate-800">
+        <div className="hidden grid-cols-[0.9fr_0.45fr_1.2fr] bg-slate-900/80 text-xs font-semibold uppercase text-slate-400 md:grid">
+          <div className="border-r border-slate-800 px-4 py-3">Навык</div>
+          <div className="border-r border-slate-800 px-4 py-3">Где учить</div>
+          <div className="px-4 py-3">Как понять, что умею</div>
+        </div>
+        {interviewCoverage.map((item) => (
+          <div key={item.skill} className="grid gap-2 border-t border-slate-800 p-4 md:grid-cols-[0.9fr_0.45fr_1.2fr] md:gap-0 md:p-0">
+            <div className="font-semibold text-white md:border-r md:border-slate-800 md:px-4 md:py-3">{item.skill}</div>
+            <div className="text-sm text-teal-200 md:border-r md:border-slate-800 md:px-4 md:py-3">{item.module}</div>
+            <div className="text-sm text-slate-300 md:px-4 md:py-3">{item.proof}</div>
+          </div>
+        ))}
+      </div>
+    </Card>
+  )
+}
+
 function SprintView({ onOpenModules, onOpenSandbox }: { onOpenModules: () => void; onOpenSandbox: () => void }) {
   return (
     <div className="space-y-4 lg:space-y-6">
@@ -638,6 +731,8 @@ function SprintView({ onOpenModules, onOpenSandbox }: { onOpenModules: () => voi
           </Card>
         ))}
       </section>
+
+      <CoverageMatrix />
 
       <section className="grid gap-2 lg:gap-4 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
         {threeDayPlan.map((day) => (
