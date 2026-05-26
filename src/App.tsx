@@ -452,7 +452,7 @@ function FoundationPrimer({ onOpenTables }: { onOpenTables?: () => void }) {
   return (
     <section className="min-w-0 space-y-4 md:space-y-6">
       <Card className="p-4 md:p-6">
-        <div className="grid min-w-0 gap-6 2xl:grid-cols-[minmax(0,0.72fr)_minmax(0,1.28fr)]">
+        <div className="grid min-w-0 grid-cols-[minmax(0,1fr)] gap-6 2xl:grid-cols-[minmax(0,0.72fr)_minmax(0,1.28fr)]">
           <div className="min-w-0">
             <Badge tone="teal">старт с нуля</Badge>
             <h3 className="mt-3 text-2xl font-semibold text-white md:text-3xl">Сначала видим таблицы, потом пишем SQL</h3>
@@ -460,7 +460,7 @@ function FoundationPrimer({ onOpenTables }: { onOpenTables?: () => void }) {
               База данных в ERP похожа на книгу Excel, где каждый лист отвечает за одну тему: клиенты, заказы, оплаты, товары, склад.
               SQL нужен, чтобы задавать этим листам точные вопросы.
             </p>
-            <div className="mt-5 grid gap-3 sm:grid-cols-2">
+            <div className="mt-5 grid grid-cols-[minmax(0,1fr)] gap-3 sm:grid-cols-2">
               {tableAnatomy.map((item) => (
                 <div key={item.title} className="rounded-md border border-slate-800 bg-slate-900/55 p-3">
                   <p className="font-semibold text-teal-200">{item.title}</p>
@@ -473,7 +473,7 @@ function FoundationPrimer({ onOpenTables }: { onOpenTables?: () => void }) {
           <div className="min-w-0 space-y-4">
             <VisualDataTable table={visualTables[0]} focus="customers" onOpenTables={onOpenTables} />
             {onOpenTables && (
-              <div className="grid min-w-0 gap-4 2xl:grid-cols-2">
+              <div className="grid min-w-0 grid-cols-[minmax(0,1fr)] gap-4 2xl:grid-cols-2">
                 <VisualDataTable table={visualTables[1]} focus="orders" onOpenTables={onOpenTables} />
                 <VisualDataTable table={visualTables[2]} focus="payments" onOpenTables={onOpenTables} />
               </div>
@@ -482,7 +482,7 @@ function FoundationPrimer({ onOpenTables }: { onOpenTables?: () => void }) {
         </div>
       </Card>
 
-      <div className="grid min-w-0 gap-4 2xl:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)]">
+      <div className="grid min-w-0 grid-cols-[minmax(0,1fr)] gap-4 2xl:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)]">
         <Card className="p-4 md:p-6">
           <h3 className="text-xl font-semibold text-white">Как таблицы разговаривают друг с другом</h3>
           <p className="mt-2 text-sm text-slate-400">Связь строится не по имени клиента, а по числовым id. Так ERP не путается, если название клиента изменится.</p>
@@ -545,7 +545,7 @@ function VisualDataTable({ table, focus, onOpenTables }: { table: VisualTable; f
           )}
         </div>
       </div>
-      <div className="grid gap-3 p-3 md:hidden">
+      <div className="grid grid-cols-[minmax(0,1fr)] gap-3 p-3 md:hidden">
         {table.rows.map((row, rowIndex) => (
           <div key={`${focus}-mobile-${rowIndex}`} className="rounded-md border border-slate-800 bg-slate-900/55 p-3">
             <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
@@ -625,7 +625,7 @@ function VisualDataTable({ table, focus, onOpenTables }: { table: VisualTable; f
 function FullDataTable({ table }: { table: VisualTable }) {
   return (
     <div className="min-w-0 overflow-hidden rounded-lg border border-slate-800 bg-slate-950">
-      <div className="grid gap-3 p-3 md:hidden">
+      <div className="grid grid-cols-[minmax(0,1fr)] gap-3 p-3 md:hidden">
         {table.rows.map((row, rowIndex) => (
           <div key={`${table.name}-mobile-${rowIndex}`} className="rounded-md border border-slate-800 bg-slate-900/55 p-3">
             <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
@@ -1209,8 +1209,28 @@ function ModulesView({
   const concepts = (moduleConcepts[activeModule.id] ?? []).map((id) => conceptExplanations[id]).filter(Boolean)
 
   return (
-    <div className="grid gap-6 xl:grid-cols-[300px_minmax(0,1fr)]">
-      <Card className="grid h-fit gap-2 p-3 sm:grid-cols-2 lg:grid-cols-3 xl:sticky xl:top-28 xl:block">
+    <div className="grid grid-cols-[minmax(0,1fr)] gap-6 xl:grid-cols-[300px_minmax(0,1fr)]">
+      <Card className="p-3 xl:hidden">
+        <label htmlFor="mobile-module-select" className="text-sm font-semibold text-white">Выбор модуля</label>
+        <select
+          id="mobile-module-select"
+          value={activeModule.id}
+          onChange={(event) => onSelect(event.target.value)}
+          className="mt-2 w-full rounded-md border border-slate-700 bg-slate-900 px-3 py-3 text-sm font-semibold text-white outline-none focus:border-teal-300"
+        >
+          {modules.map((module) => {
+            const itemStatus = moduleStatus(module, progress)
+            return (
+              <option key={module.id} value={module.id}>
+                {module.number}. {module.title} - {itemStatus.label}
+              </option>
+            )
+          })}
+        </select>
+        <p className="mt-2 text-xs text-slate-400">Переключай уроки здесь, а ниже сразу идёт материал выбранного модуля.</p>
+      </Card>
+
+      <Card className="hidden h-fit p-3 xl:sticky xl:top-28 xl:block">
         {modules.map((module) => {
           const itemStatus = moduleStatus(module, progress)
           return (
@@ -1238,15 +1258,15 @@ function ModulesView({
         })}
       </Card>
 
-      <div className="mx-auto w-full max-w-6xl space-y-6">
-        <Card className="p-6">
+      <div className="w-full max-w-full min-w-0 space-y-6 xl:mx-auto xl:max-w-6xl">
+        <Card className="p-4 md:p-6">
           <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
-            <div>
+            <div className="min-w-0">
               <Badge tone={status.tone}>{status.label}</Badge>
-              <h2 className="mt-3 text-3xl font-semibold text-white">Модуль {activeModule.number}. {activeModule.title}</h2>
+              <h2 className="mt-3 text-2xl font-semibold leading-tight text-white md:text-3xl">Модуль {activeModule.number}. {activeModule.title}</h2>
               <p className="mt-3 text-slate-300">{activeModule.goal}</p>
             </div>
-            <Button onClick={() => onComplete(activeModule.id)}><CheckCircle2 size={17} />Завершить модуль</Button>
+            <Button className="w-full md:w-auto" onClick={() => onComplete(activeModule.id)}><CheckCircle2 size={17} />Завершить модуль</Button>
           </div>
           <div className="mt-5 rounded-md border border-slate-800 bg-slate-900/60 p-4">
             <p className="text-sm font-semibold text-teal-200">ERP-контекст</p>

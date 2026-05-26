@@ -57,7 +57,7 @@ export function Progress({ value }: { value: number }) {
 
 export function SqlCode({ children }: { children: string }) {
   return (
-    <pre className="overflow-x-auto rounded-md border border-slate-800 bg-slate-950 p-4 text-left text-sm leading-6 text-slate-100">
+    <pre className="overflow-x-auto whitespace-pre-wrap break-words rounded-md border border-slate-800 bg-slate-950 p-4 text-left text-sm leading-6 text-slate-100 md:whitespace-pre md:break-normal">
       <code>{children}</code>
     </pre>
   )
