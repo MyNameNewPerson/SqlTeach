@@ -9,6 +9,7 @@ import {
   CheckCircle2,
   ClipboardCheck,
   DatabaseZap,
+  Table2,
   FileQuestion,
   GraduationCap,
   LayoutDashboard,
@@ -34,6 +35,7 @@ import { Badge, Button, Card, Progress, SqlCode } from './components/ui'
 
 const navItems: NavItem[] = [
   { id: 'dashboard', label: 'Главная', icon: LayoutDashboard },
+  { id: 'tables', label: 'ERP-таблицы', icon: Table2 },
   { id: 'sprint', label: 'План на 3 дня', icon: CalendarDays },
   { id: 'map', label: 'Карта курса', icon: Map },
   { id: 'modules', label: 'Модули', icon: BookOpen },
@@ -224,12 +226,14 @@ function App() {
               <Dashboard
                 completedPercent={completedPercent}
                 progress={progress}
+                onOpenTables={() => setActiveView('tables')}
                 onOpenSprint={() => setActiveView('sprint')}
                 onOpenModules={() => setActiveView('modules')}
                 onOpenSandbox={() => setActiveView('sandbox')}
                 onReset={resetProgress}
               />
             )}
+            {activeView === 'tables' && <TablesView />}
             {activeView === 'sprint' && <SprintView onOpenModules={() => setActiveView('modules')} onOpenSandbox={() => setActiveView('sandbox')} />}
             {activeView === 'map' && <CourseMap progress={progress} onSelect={setModule} onOpenModules={() => setActiveView('modules')} />}
             {activeView === 'modules' && (
@@ -324,6 +328,7 @@ function moduleStatus(module: CourseModule, progress: ProgressState) {
 function Dashboard({
   completedPercent,
   progress,
+  onOpenTables,
   onOpenSprint,
   onOpenModules,
   onOpenSandbox,
@@ -331,6 +336,7 @@ function Dashboard({
 }: {
   completedPercent: number
   progress: ProgressState
+  onOpenTables: () => void
   onOpenSprint: () => void
   onOpenModules: () => void
   onOpenSandbox: () => void
@@ -341,7 +347,7 @@ function Dashboard({
 
   return (
     <div className="space-y-4 md:space-y-6">
-      <FoundationPrimer />
+      <FoundationPrimer onOpenTables={onOpenTables} />
       <MemoryMethodSection />
 
       <section className="grid gap-4 md:gap-6 md:grid-cols-1 xl:grid-cols-[1.35fr_0.65fr]">
@@ -442,7 +448,7 @@ function Dashboard({
   )
 }
 
-function FoundationPrimer({ compact = false }: { compact?: boolean }) {
+function FoundationPrimer({ onOpenTables }: { onOpenTables?: () => void }) {
   return (
     <section className="space-y-4 md:space-y-6">
       <Card className="p-4 md:p-6">
@@ -465,11 +471,11 @@ function FoundationPrimer({ compact = false }: { compact?: boolean }) {
           </div>
 
           <div className="space-y-4">
-            <VisualDataTable table={visualTables[0]} focus="customers" />
-            {!compact && (
+            <VisualDataTable table={visualTables[0]} focus="customers" onOpenTables={onOpenTables} />
+            {(
               <div className="grid gap-4 2xl:grid-cols-2">
-                <VisualDataTable table={visualTables[1]} focus="orders" />
-                <VisualDataTable table={visualTables[2]} focus="payments" />
+                <VisualDataTable table={visualTables[1]} focus="orders" onOpenTables={onOpenTables} />
+                <VisualDataTable table={visualTables[2]} focus="payments" onOpenTables={onOpenTables} />
               </div>
             )}
           </div>
@@ -517,7 +523,7 @@ WHERE id = 1004;`}</SqlCode></div>
   )
 }
 
-function VisualDataTable({ table, focus }: { table: VisualTable; focus: string }) {
+function VisualDataTable({ table, focus, onOpenTables }: { table: VisualTable; focus: string; onOpenTables?: () => void }) {
   return (
     <div className="overflow-hidden rounded-lg border border-slate-800 bg-slate-950">
       <div className="border-b border-slate-800 bg-slate-900/80 p-3">
@@ -526,7 +532,17 @@ function VisualDataTable({ table, focus }: { table: VisualTable; focus: string }
             <p className="font-mono text-sm font-semibold text-teal-200">{table.name}</p>
             <p className="text-xs text-slate-400">{table.humanName}: {table.purpose}</p>
           </div>
-          <Badge tone="blue">реальная таблица</Badge>
+          {onOpenTables ? (
+            <button
+              type="button"
+              onClick={onOpenTables}
+              className="rounded-full border border-sky-400/30 bg-sky-400/10 px-2.5 py-1 text-xs font-medium text-sky-200 transition hover:bg-sky-400/20"
+            >
+              открыть все таблицы
+            </button>
+          ) : (
+            <Badge tone="blue">реальная таблица</Badge>
+          )}
         </div>
       </div>
       <div className="overflow-x-auto">
@@ -862,6 +878,72 @@ function CourseMap({ progress, onSelect, onOpenModules }: { progress: ProgressSt
           )
         })}
       </div>
+    </div>
+  )
+}
+
+function TablesView() {
+  return (
+    <div className="space-y-6">
+      <Card className="p-5 md:p-6">
+        <Badge tone="teal">ERP data map</Badge>
+        <h2 className="mt-3 text-3xl font-semibold text-white">ERP-таблицы: посмотри данные глазами</h2>
+        <p className="mt-3 max-w-3xl text-slate-300">
+          Это учебная мини-база. Сначала изучи таблицы как обычные списки, потом переходи к SQL. Так проще понять, что именно делает запрос.
+        </p>
+        <div className="mt-5 grid gap-3 md:grid-cols-3">
+          <InfoStrip title="PK" text="PRIMARY KEY. Главный id строки внутри своей таблицы." tone="teal" />
+          <InfoStrip title="FK" text="FOREIGN KEY. Колонка-ссылка на id другой таблицы." tone="blue" />
+          <InfoStrip title="Связь" text="Например orders.customer_id указывает на customers.id." tone="amber" />
+        </div>
+      </Card>
+
+      <Card className="p-5 md:p-6">
+        <h3 className="text-xl font-semibold text-white">Главная цепочка ERP</h3>
+        <div className="mt-5 grid gap-3 lg:grid-cols-[1fr_auto_1fr_auto_1fr] lg:items-center">
+          <RelationNode title="customers" main="id" detail="кто покупает" tone="teal" />
+          <RelationArrow label="orders.customer_id" />
+          <RelationNode title="orders" main="id" detail="заказ и статус" tone="blue" />
+          <RelationArrow label="payments.order_id" />
+          <RelationNode title="payments" main="id" detail="оплата заказа" tone="amber" />
+        </div>
+      </Card>
+
+      <div className="grid gap-6">
+        {visualTables.map((table) => (
+          <Card key={table.name} className="p-4 md:p-5">
+            <VisualDataTable table={table} focus={table.name} />
+            <div className="mt-4 grid gap-3 lg:grid-cols-[0.8fr_1.2fr]">
+              <div className="rounded-md border border-slate-800 bg-slate-900/55 p-4">
+                <h4 className="font-semibold text-white">Что означает таблица</h4>
+                <p className="mt-2 text-sm text-slate-300">{table.purpose}</p>
+              </div>
+              <div className="rounded-md border border-slate-800 bg-slate-900/55 p-4">
+                <h4 className="font-semibold text-white">Колонки</h4>
+                <div className="mt-3 grid gap-2 md:grid-cols-2">
+                  {table.columns.map((column) => (
+                    <div key={column.name} className="rounded-md bg-slate-950/70 p-3 text-sm">
+                      <p className="font-mono text-teal-200">{column.name}{column.kind ? ` · ${column.kind.toUpperCase()}` : ''}</p>
+                      <p className="mt-1 text-slate-400">{column.meaning}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </Card>
+        ))}
+      </div>
+
+      <Card className="p-5 md:p-6">
+        <h3 className="text-xl font-semibold text-white">Как посмотреть эти таблицы через SQL</h3>
+        <p className="mt-2 text-sm text-slate-400">Открой SQL-песочницу и попробуй по очереди.</p>
+        <div className="mt-4 grid gap-4 lg:grid-cols-3">
+          {visualTables.map((table) => (
+            <SqlCode key={table.name}>{`SELECT *
+FROM ${table.name};`}</SqlCode>
+          ))}
+        </div>
+      </Card>
     </div>
   )
 }
