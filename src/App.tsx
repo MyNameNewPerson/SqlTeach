@@ -139,8 +139,8 @@ function App() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100">
-      <div className="flex min-h-screen">
+    <div className="min-h-screen overflow-x-hidden bg-slate-950 text-slate-100">
+      <div className="flex min-h-screen min-w-0">
         {/* Боковая панель оставлена только для desktop, чтобы планшеты не зажимали контент. */}
         <aside className="sticky top-0 hidden h-screen w-72 shrink-0 border-r border-slate-800 bg-slate-950/95 p-4 xl:block">
           <div className="mb-6 rounded-lg border border-slate-800 bg-slate-900/60 p-4">
@@ -178,7 +178,7 @@ function App() {
           </nav>
         </aside>
 
-        <main className="min-w-0 flex-1">
+        <main className="w-full min-w-0 flex-1 overflow-x-hidden">
           <header className="sticky top-0 z-30 border-b border-slate-800 bg-slate-950/95 px-4 py-3 backdrop-blur-sm xl:px-8">
             {isHeaderCompact ? (
               <div className="flex items-center justify-between gap-3">
@@ -221,7 +221,7 @@ function App() {
             )}
           </header>
 
-          <div className="mx-auto max-w-7xl px-4 py-6 xl:px-8">
+          <div className="mx-auto w-full max-w-7xl px-4 py-6 xl:px-8">
             {activeView === 'dashboard' && (
               <Dashboard
                 completedPercent={completedPercent}
@@ -450,10 +450,10 @@ function Dashboard({
 
 function FoundationPrimer({ onOpenTables }: { onOpenTables?: () => void }) {
   return (
-    <section className="space-y-4 md:space-y-6">
+    <section className="min-w-0 space-y-4 md:space-y-6">
       <Card className="p-4 md:p-6">
-        <div className="grid gap-6 2xl:grid-cols-[0.72fr_1.28fr]">
-          <div>
+        <div className="grid min-w-0 gap-6 2xl:grid-cols-[minmax(0,0.72fr)_minmax(0,1.28fr)]">
+          <div className="min-w-0">
             <Badge tone="teal">старт с нуля</Badge>
             <h3 className="mt-3 text-2xl font-semibold text-white md:text-3xl">Сначала видим таблицы, потом пишем SQL</h3>
             <p className="mt-3 text-slate-300">
@@ -470,10 +470,10 @@ function FoundationPrimer({ onOpenTables }: { onOpenTables?: () => void }) {
             </div>
           </div>
 
-          <div className="space-y-4">
+          <div className="min-w-0 space-y-4">
             <VisualDataTable table={visualTables[0]} focus="customers" onOpenTables={onOpenTables} />
             {onOpenTables && (
-              <div className="grid gap-4 2xl:grid-cols-2">
+              <div className="grid min-w-0 gap-4 2xl:grid-cols-2">
                 <VisualDataTable table={visualTables[1]} focus="orders" onOpenTables={onOpenTables} />
                 <VisualDataTable table={visualTables[2]} focus="payments" onOpenTables={onOpenTables} />
               </div>
@@ -482,7 +482,7 @@ function FoundationPrimer({ onOpenTables }: { onOpenTables?: () => void }) {
         </div>
       </Card>
 
-      <div className="grid gap-4 2xl:grid-cols-[1.1fr_0.9fr]">
+      <div className="grid min-w-0 gap-4 2xl:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)]">
         <Card className="p-4 md:p-6">
           <h3 className="text-xl font-semibold text-white">Как таблицы разговаривают друг с другом</h3>
           <p className="mt-2 text-sm text-slate-400">Связь строится не по имени клиента, а по числовым id. Так ERP не путается, если название клиента изменится.</p>
@@ -525,10 +525,10 @@ WHERE id = 1004;`}</SqlCode></div>
 
 function VisualDataTable({ table, focus, onOpenTables }: { table: VisualTable; focus: string; onOpenTables?: () => void }) {
   return (
-    <div className="overflow-hidden rounded-lg border border-slate-800 bg-slate-950">
+    <div className="min-w-0 overflow-hidden rounded-lg border border-slate-800 bg-slate-950">
       <div className="border-b border-slate-800 bg-slate-900/80 p-3">
         <div className="flex flex-wrap items-center justify-between gap-2">
-          <div>
+          <div className="min-w-0">
             <p className="font-mono text-sm font-semibold text-teal-200">{table.name}</p>
             <p className="text-xs text-slate-400">{table.humanName}: {table.purpose}</p>
           </div>
@@ -545,7 +545,35 @@ function VisualDataTable({ table, focus, onOpenTables }: { table: VisualTable; f
           )}
         </div>
       </div>
-      <div className="overflow-x-auto">
+      <div className="grid gap-3 p-3 md:hidden">
+        {table.rows.map((row, rowIndex) => (
+          <div key={`${focus}-mobile-${rowIndex}`} className="rounded-md border border-slate-800 bg-slate-900/55 p-3">
+            <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+              <p className="text-xs font-semibold uppercase text-slate-500">Строка {rowIndex + 1}</p>
+              <Badge tone="slate">{table.name}</Badge>
+            </div>
+            <div className="grid gap-2">
+              {table.columns.map((column, columnIndex) => (
+                <div
+                  key={`${focus}-${rowIndex}-${column.name}`}
+                  className={cn(
+                    'grid grid-cols-1 gap-1 rounded bg-slate-950/70 p-2 text-sm sm:grid-cols-[minmax(0,0.42fr)_minmax(0,0.58fr)] sm:gap-3',
+                    rowIndex === 1 && columnIndex === 0 && 'ring-1 ring-teal-400/40',
+                    rowIndex === 1 && columnIndex === 2 && 'ring-1 ring-amber-400/30',
+                  )}
+                >
+                  <div className="min-w-0">
+                    <p className="break-words font-mono text-xs text-teal-200">{column.name}</p>
+                    {column.kind && <p className="mt-1 text-[10px] uppercase text-slate-500">{column.kind}</p>}
+                  </div>
+                  <p className="min-w-0 break-words text-slate-200">{String(row[column.name])}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
+      <div className="hidden overflow-x-auto md:block">
         <table className="w-full min-w-[560px] text-left text-sm">
           <thead>
             <tr>
@@ -596,8 +624,31 @@ function VisualDataTable({ table, focus, onOpenTables }: { table: VisualTable; f
 
 function FullDataTable({ table }: { table: VisualTable }) {
   return (
-    <div className="overflow-hidden rounded-lg border border-slate-800 bg-slate-950">
-      <div className="overflow-x-auto">
+    <div className="min-w-0 overflow-hidden rounded-lg border border-slate-800 bg-slate-950">
+      <div className="grid gap-3 p-3 md:hidden">
+        {table.rows.map((row, rowIndex) => (
+          <div key={`${table.name}-mobile-${rowIndex}`} className="rounded-md border border-slate-800 bg-slate-900/55 p-3">
+            <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+              <p className="text-xs font-semibold uppercase text-slate-500">Строка {rowIndex + 1}</p>
+              <Badge tone="slate">{table.name}</Badge>
+            </div>
+            <div className="grid gap-2">
+              {table.columns.map((column) => (
+                <div key={`${table.name}-${rowIndex}-${column.name}`} className="grid grid-cols-1 gap-1 rounded bg-slate-950/70 p-2 text-sm sm:grid-cols-[minmax(0,0.42fr)_minmax(0,0.58fr)] sm:gap-3">
+                  <div className="min-w-0">
+                    <p className="break-words font-mono text-xs text-teal-200">{column.name}</p>
+                    {column.kind && <p className="mt-1 text-[10px] uppercase text-slate-500">{column.kind}</p>}
+                  </div>
+                  <p className={cn('min-w-0 break-words text-slate-200', String(row[column.name]) === 'NULL' && 'font-mono text-amber-200')}>
+                    {String(row[column.name])}
+                  </p>
+                </div>
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
+      <div className="hidden overflow-x-auto md:block">
         <table className="w-full min-w-[720px] text-left text-sm">
           <thead className="sticky top-0 bg-slate-900 text-slate-300">
             <tr>
