@@ -23,7 +23,7 @@ import {
 import { conceptExplanations, moduleConcepts } from './data/concepts'
 import type { ConceptExplanation, ConceptTable } from './data/concepts'
 import { erpCases, finalExam, interviewPrompts, modules, sqlReference } from './data/course'
-import { firstSqlStory, relationshipSteps, tableAnatomy, visualTables } from './data/foundation'
+import { firstSqlStory, relationshipSteps, tableAnatomy, tableRelations, visualTables } from './data/foundation'
 import { beginnerGlossary, interviewCoverage, memoryMethod, recallCards, sourceTakeaways, syntaxDictionary, workedExamples } from './data/learning'
 import type { VisualTable } from './data/foundation'
 import type { WorkedExample } from './data/learning'
@@ -472,7 +472,7 @@ function FoundationPrimer({ onOpenTables }: { onOpenTables?: () => void }) {
 
           <div className="space-y-4">
             <VisualDataTable table={visualTables[0]} focus="customers" onOpenTables={onOpenTables} />
-            {(
+            {onOpenTables && (
               <div className="grid gap-4 2xl:grid-cols-2">
                 <VisualDataTable table={visualTables[1]} focus="orders" onOpenTables={onOpenTables} />
                 <VisualDataTable table={visualTables[2]} focus="payments" onOpenTables={onOpenTables} />
@@ -589,6 +589,54 @@ function VisualDataTable({ table, focus, onOpenTables }: { table: VisualTable; f
         <p><span className="text-teal-200">PK</span> - главный id строки.</p>
         <p><span className="text-sky-200">FK</span> - ссылка на другую таблицу.</p>
         <p><span className="text-amber-200">Подсветка</span> - пример ячейки.</p>
+      </div>
+    </div>
+  )
+}
+
+function FullDataTable({ table }: { table: VisualTable }) {
+  return (
+    <div className="overflow-hidden rounded-lg border border-slate-800 bg-slate-950">
+      <div className="overflow-x-auto">
+        <table className="w-full min-w-[720px] text-left text-sm">
+          <thead className="sticky top-0 bg-slate-900 text-slate-300">
+            <tr>
+              {table.columns.map((column) => (
+                <th
+                  key={column.name}
+                  className={cn(
+                    'border-b border-slate-800 px-4 py-3 font-mono text-xs uppercase',
+                    column.kind === 'primary' && 'bg-teal-400/10 text-teal-200',
+                    column.kind === 'foreign' && 'bg-sky-400/10 text-sky-200',
+                  )}
+                >
+                  <div className="flex items-center gap-2">
+                    <span>{column.name}</span>
+                    {column.kind === 'primary' && <span className="rounded bg-teal-400/20 px-1.5 py-0.5 text-[10px]">PK</span>}
+                    {column.kind === 'foreign' && <span className="rounded bg-sky-400/20 px-1.5 py-0.5 text-[10px]">FK</span>}
+                  </div>
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {table.rows.map((row, rowIndex) => (
+              <tr key={`${table.name}-full-${rowIndex}`} className="odd:bg-slate-950 even:bg-slate-900/45">
+                {table.columns.map((column) => (
+                  <td
+                    key={`${table.name}-${rowIndex}-${column.name}`}
+                    className={cn(
+                      'border-b border-slate-800 px-4 py-3 text-slate-300',
+                      String(row[column.name]) === 'NULL' && 'font-mono text-amber-200',
+                    )}
+                  >
+                    {String(row[column.name])}
+                  </td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
       </div>
     </div>
   )
@@ -883,6 +931,9 @@ function CourseMap({ progress, onSelect, onOpenModules }: { progress: ProgressSt
 }
 
 function TablesView() {
+  const [activeTableName, setActiveTableName] = useState(visualTables[0].name)
+  const activeTable = visualTables.find((table) => table.name === activeTableName) ?? visualTables[0]
+
   return (
     <div className="space-y-6">
       <Card className="p-5 md:p-6">
@@ -898,52 +949,89 @@ function TablesView() {
         </div>
       </Card>
 
-      <Card className="p-5 md:p-6">
-        <h3 className="text-xl font-semibold text-white">Главная цепочка ERP</h3>
-        <div className="mt-5 grid gap-3 lg:grid-cols-[1fr_auto_1fr_auto_1fr] lg:items-center">
-          <RelationNode title="customers" main="id" detail="кто покупает" tone="teal" />
-          <RelationArrow label="orders.customer_id" />
-          <RelationNode title="orders" main="id" detail="заказ и статус" tone="blue" />
-          <RelationArrow label="payments.order_id" />
-          <RelationNode title="payments" main="id" detail="оплата заказа" tone="amber" />
-        </div>
-      </Card>
+      <div className="grid gap-6 xl:grid-cols-[280px_minmax(0,1fr)]">
+        <Card className="h-fit p-3 xl:sticky xl:top-28">
+          <p className="px-2 pb-3 text-sm font-semibold text-white">Таблицы базы</p>
+          <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-1">
+            {visualTables.map((table) => (
+              <button
+                key={table.name}
+                type="button"
+                onClick={() => setActiveTableName(table.name)}
+                className={cn(
+                  'rounded-md border p-3 text-left transition',
+                  activeTable.name === table.name
+                    ? 'border-teal-400/50 bg-teal-400/10'
+                    : 'border-slate-800 bg-slate-900/60 hover:border-slate-700 hover:bg-slate-800',
+                )}
+              >
+                <p className="font-mono text-sm font-semibold text-white">{table.name}</p>
+                <p className="mt-1 text-xs text-slate-400">{table.humanName}</p>
+                <p className="mt-2 text-xs text-teal-200">{table.rows.length} строк · {table.columns.length} колонок</p>
+              </button>
+            ))}
+          </div>
+        </Card>
 
-      <div className="grid gap-6">
-        {visualTables.map((table) => (
-          <Card key={table.name} className="p-4 md:p-5">
-            <VisualDataTable table={table} focus={table.name} />
-            <div className="mt-4 grid gap-3 lg:grid-cols-[0.8fr_1.2fr]">
-              <div className="rounded-md border border-slate-800 bg-slate-900/55 p-4">
-                <h4 className="font-semibold text-white">Что означает таблица</h4>
-                <p className="mt-2 text-sm text-slate-300">{table.purpose}</p>
+        <div className="min-w-0 space-y-6">
+          <Card className="p-4 md:p-5">
+            <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+              <div>
+                <Badge tone="teal">полная таблица</Badge>
+                <h3 className="mt-3 font-mono text-2xl font-semibold text-white">{activeTable.name}</h3>
+                <p className="mt-2 text-slate-300">{activeTable.purpose}</p>
               </div>
-              <div className="rounded-md border border-slate-800 bg-slate-900/55 p-4">
-                <h4 className="font-semibold text-white">Колонки</h4>
-                <div className="mt-3 grid gap-2 md:grid-cols-2">
-                  {table.columns.map((column) => (
-                    <div key={column.name} className="rounded-md bg-slate-950/70 p-3 text-sm">
-                      <p className="font-mono text-teal-200">{column.name}{column.kind ? ` · ${column.kind.toUpperCase()}` : ''}</p>
-                      <p className="mt-1 text-slate-400">{column.meaning}</p>
-                    </div>
-                  ))}
-                </div>
-              </div>
+              <Badge tone="blue">{activeTable.rows.length} строк</Badge>
+            </div>
+            <div className="mt-5">
+              <FullDataTable table={activeTable} />
             </div>
           </Card>
-        ))}
-      </div>
 
-      <Card className="p-5 md:p-6">
-        <h3 className="text-xl font-semibold text-white">Как посмотреть эти таблицы через SQL</h3>
-        <p className="mt-2 text-sm text-slate-400">Открой SQL-песочницу и попробуй по очереди.</p>
-        <div className="mt-4 grid gap-4 lg:grid-cols-3">
-          {visualTables.map((table) => (
-            <SqlCode key={table.name}>{`SELECT *
-FROM ${table.name};`}</SqlCode>
-          ))}
+          <div className="grid gap-6 lg:grid-cols-[0.95fr_1.05fr]">
+            <Card className="p-4 md:p-5">
+              <h4 className="text-lg font-semibold text-white">Колонки таблицы</h4>
+              <div className="mt-4 grid gap-3">
+                {activeTable.columns.map((column) => (
+                  <div key={column.name} className="rounded-md border border-slate-800 bg-slate-900/55 p-3">
+                    <p className="font-mono text-sm text-teal-200">
+                      {column.name}
+                      {column.kind === 'primary' && ' · PRIMARY KEY'}
+                      {column.kind === 'foreign' && ' · FOREIGN KEY'}
+                    </p>
+                    <p className="mt-1 text-sm text-slate-300">{column.meaning}</p>
+                  </div>
+                ))}
+              </div>
+            </Card>
+
+            <Card className="p-4 md:p-5">
+              <h4 className="text-lg font-semibold text-white">Связи этой учебной ERP-базы</h4>
+              <div className="mt-4 space-y-2">
+                {tableRelations.map((relation) => (
+                  <div
+                    key={relation}
+                    className={cn(
+                      'rounded-md border px-3 py-2 font-mono text-sm',
+                      relation.startsWith(activeTable.name) || relation.includes(`-> ${activeTable.name}.`)
+                        ? 'border-teal-400/30 bg-teal-400/10 text-teal-100'
+                        : 'border-slate-800 bg-slate-900/55 text-slate-400',
+                    )}
+                  >
+                    {relation}
+                  </div>
+                ))}
+              </div>
+            </Card>
+          </div>
+
+          <Card className="p-4 md:p-5">
+            <h4 className="text-lg font-semibold text-white">Открыть эту таблицу через SQL</h4>
+            <div className="mt-4"><SqlCode>{`SELECT *
+FROM ${activeTable.name};`}</SqlCode></div>
+          </Card>
         </div>
-      </Card>
+      </div>
     </div>
   )
 }
@@ -1088,7 +1176,7 @@ function ConceptExplanationCard({ concept, defaultOpen }: { concept: ConceptExpl
         <span className="ml-3 text-sm text-slate-400">{concept.short}</span>
       </summary>
       <div className="border-t border-slate-800 p-4 md:p-5">
-        <div className="grid gap-4 xl:grid-cols-[0.95fr_1.05fr]">
+        <div className="grid gap-4 2xl:grid-cols-[0.9fr_1.1fr]">
           <div className="space-y-4">
             <InfoStrip title="Простая аналогия" text={concept.analogy} tone="teal" />
             <InfoStrip title="ERP-пример" text={concept.erpExample} tone="blue" />
@@ -1097,7 +1185,7 @@ function ConceptExplanationCard({ concept, defaultOpen }: { concept: ConceptExpl
           </div>
           <div className="space-y-4">
             {concept.tables && (
-              <div className="grid gap-3 md:grid-cols-2">
+              <div className="grid gap-3 xl:grid-cols-2">
                 {concept.tables.map((table) => <ConceptMiniTable key={table.title} table={table} />)}
               </div>
             )}
@@ -1117,7 +1205,7 @@ function ConceptExplanationCard({ concept, defaultOpen }: { concept: ConceptExpl
 
         <div className="mt-5">
           <p className="text-sm font-semibold text-white">Разбираем по частям</p>
-          <div className="mt-3 grid gap-3 md:grid-cols-2">
+          <div className="mt-3 grid gap-3 xl:grid-cols-2">
             {concept.breakdown.map((item) => (
               <div key={`${concept.id}-${item.part}`} className="rounded-md border border-slate-800 bg-slate-950/65 p-3">
                 <p className="font-mono text-sm text-teal-200">{item.part}</p>
