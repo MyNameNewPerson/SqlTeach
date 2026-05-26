@@ -4,6 +4,8 @@ import wasmUrl from 'sql.js/dist/sql-wasm.wasm?url'
 import {
   BookOpen,
   CalendarDays,
+  ChevronDown,
+  ChevronUp,
   CheckCircle2,
   ClipboardCheck,
   DatabaseZap,
@@ -18,7 +20,9 @@ import {
   Trophy,
 } from 'lucide-react'
 import { erpCases, finalExam, interviewPrompts, modules, sqlReference } from './data/course'
+import { firstSqlStory, relationshipSteps, tableAnatomy, visualTables } from './data/foundation'
 import { beginnerGlossary, sourceTakeaways, syntaxDictionary, workedExamples } from './data/learning'
+import type { VisualTable } from './data/foundation'
 import type { WorkedExample } from './data/learning'
 import { schemaSummary, seedSql } from './lib/sqlSeed'
 import { defaultProgress, loadProgress, resetStoredProgress, saveProgress } from './lib/storage'
@@ -94,6 +98,7 @@ function App() {
   const [progress, setProgress] = useState<ProgressState>(() => loadProgress())
   const [activeModuleId, setActiveModuleId] = useState(() => loadProgress().lastModuleId)
   const [sandboxSql, setSandboxSql] = useState(modules[1].task.starterSql)
+  const [isHeaderCompact, setIsHeaderCompact] = useState(() => window.innerWidth < 1280)
 
   useEffect(() => {
     saveProgress(progress)
@@ -170,19 +175,46 @@ function App() {
         </aside>
 
         <main className="min-w-0 flex-1">
-          <header className="sticky top-0 z-30 border-b border-slate-800 bg-slate-950/95 px-4 py-4 backdrop-blur-sm xl:px-8">
-            <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-              <div>
-                <p className="text-xs uppercase tracking-[0.18em] text-teal-300">local interactive course</p>
-                <h1 className="mt-1 text-2xl font-semibold text-white lg:text-3xl">SQL ERP Engineer Course</h1>
+          <header className="sticky top-0 z-30 border-b border-slate-800 bg-slate-950/95 px-4 py-3 backdrop-blur-sm xl:px-8">
+            {isHeaderCompact ? (
+              <div className="flex items-center justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="truncate text-sm font-semibold text-white">SQL ERP Engineer Course</p>
+                  <p className="text-xs text-slate-400">{completedPercent}% курса</p>
+                </div>
+                <Button variant="secondary" onClick={() => setIsHeaderCompact(false)}>
+                  <ChevronDown size={16} />
+                  Показать меню
+                </Button>
               </div>
-              <div className="grid grid-cols-3 gap-2 lg:gap-3">
-                <Metric label="Прогресс" value={`${completedPercent}%`} />
-                <Metric label="Тесты" value={`${averageQuiz}%`} />
-                <Metric label="Модулей" value={`${progress.completedModules.length}/${modules.length}`} />
-              </div>
-            </div>
-            <MobileNav activeView={activeView} onChange={setActiveView} />
+            ) : (
+              <>
+                <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+                  <div>
+                    <p className="text-xs uppercase tracking-[0.18em] text-teal-300">local interactive course</p>
+                    <h1 className="mt-1 text-2xl font-semibold text-white lg:text-3xl">SQL ERP Engineer Course</h1>
+                  </div>
+                  <div className="grid grid-cols-3 gap-2 lg:gap-3">
+                    <Metric label="Прогресс" value={`${completedPercent}%`} />
+                    <Metric label="Тесты" value={`${averageQuiz}%`} />
+                    <Metric label="Модулей" value={`${progress.completedModules.length}/${modules.length}`} />
+                  </div>
+                </div>
+                <div className="mt-3 flex justify-end xl:hidden">
+                  <Button variant="ghost" onClick={() => setIsHeaderCompact(true)}>
+                    <ChevronUp size={16} />
+                    Скрыть верхнюю панель
+                  </Button>
+                </div>
+                <MobileNav
+                  activeView={activeView}
+                  onChange={(view) => {
+                    setActiveView(view)
+                    setIsHeaderCompact(window.innerWidth < 1280)
+                  }}
+                />
+              </>
+            )}
           </header>
 
           <div className="mx-auto max-w-7xl px-4 py-6 xl:px-8">
@@ -307,6 +339,8 @@ function Dashboard({
 
   return (
     <div className="space-y-4 md:space-y-6">
+      <FoundationPrimer />
+
       <section className="grid gap-4 md:gap-6 md:grid-cols-1 xl:grid-cols-[1.35fr_0.65fr]">
         <Card className="overflow-hidden p-4 md:p-6 md:p-8">
           <div className="mb-6 md:mb-8 max-w-3xl">
@@ -401,6 +435,168 @@ function Dashboard({
           </Card>
         ))}
       </section>
+    </div>
+  )
+}
+
+function FoundationPrimer({ compact = false }: { compact?: boolean }) {
+  return (
+    <section className="space-y-4 md:space-y-6">
+      <Card className="p-4 md:p-6">
+        <div className="grid gap-6 xl:grid-cols-[0.72fr_1.28fr]">
+          <div>
+            <Badge tone="teal">старт с нуля</Badge>
+            <h3 className="mt-3 text-2xl font-semibold text-white md:text-3xl">Сначала видим таблицы, потом пишем SQL</h3>
+            <p className="mt-3 text-slate-300">
+              База данных в ERP похожа на книгу Excel, где каждый лист отвечает за одну тему: клиенты, заказы, оплаты, товары, склад.
+              SQL нужен, чтобы задавать этим листам точные вопросы.
+            </p>
+            <div className="mt-5 grid gap-3 sm:grid-cols-2">
+              {tableAnatomy.map((item) => (
+                <div key={item.title} className="rounded-md border border-slate-800 bg-slate-900/55 p-3">
+                  <p className="font-semibold text-teal-200">{item.title}</p>
+                  <p className="mt-2 text-sm text-slate-300">{item.text}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="space-y-4">
+            <VisualDataTable table={visualTables[0]} focus="customers" />
+            {!compact && (
+              <div className="grid gap-4 lg:grid-cols-2">
+                <VisualDataTable table={visualTables[1]} focus="orders" />
+                <VisualDataTable table={visualTables[2]} focus="payments" />
+              </div>
+            )}
+          </div>
+        </div>
+      </Card>
+
+      <div className="grid gap-4 xl:grid-cols-[1.1fr_0.9fr]">
+        <Card className="p-4 md:p-6">
+          <h3 className="text-xl font-semibold text-white">Как таблицы разговаривают друг с другом</h3>
+          <p className="mt-2 text-sm text-slate-400">Связь строится не по имени клиента, а по числовым id. Так ERP не путается, если название клиента изменится.</p>
+          <div className="mt-5 grid gap-3 lg:grid-cols-[1fr_auto_1fr_auto_1fr] lg:items-center">
+            <RelationNode title="customers" main="id = 5" detail="Delta Shop" tone="teal" />
+            <RelationArrow label="customer_id" />
+            <RelationNode title="orders" main="id = 1004" detail="customer_id = 5" tone="blue" />
+            <RelationArrow label="order_id" />
+            <RelationNode title="payments" main="id = 503" detail="order_id = 1004" tone="amber" />
+          </div>
+          <div className="mt-5 grid gap-3 md:grid-cols-2">
+            {relationshipSteps.map((step, index) => (
+              <div key={step} className="flex gap-3 rounded-md border border-slate-800 bg-slate-900/55 p-3">
+                <span className="grid size-7 shrink-0 place-items-center rounded-md bg-teal-400 text-sm font-bold text-slate-950">{index + 1}</span>
+                <p className="text-sm text-slate-300">{step}</p>
+              </div>
+            ))}
+          </div>
+        </Card>
+
+        <Card className="p-4 md:p-6">
+          <h3 className="text-xl font-semibold text-white">Первый SQL как обычная фраза</h3>
+          <div className="mt-4"><SqlCode>{`SELECT id, status, total_amount
+FROM orders
+WHERE id = 1004;`}</SqlCode></div>
+          <div className="mt-4 space-y-3">
+            {firstSqlStory.map((item) => (
+              <div key={item.sql} className="rounded-md border border-slate-800 bg-slate-900/55 p-3">
+                <p className="font-mono text-sm font-semibold text-teal-200">{item.sql}</p>
+                <p className="mt-2 text-sm text-slate-300">{item.explanation}</p>
+                <p className="mt-1 text-xs text-slate-500">По-человечески: {item.plain}</p>
+              </div>
+            ))}
+          </div>
+        </Card>
+      </div>
+    </section>
+  )
+}
+
+function VisualDataTable({ table, focus }: { table: VisualTable; focus: string }) {
+  return (
+    <div className="overflow-hidden rounded-lg border border-slate-800 bg-slate-950">
+      <div className="border-b border-slate-800 bg-slate-900/80 p-3">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <div>
+            <p className="font-mono text-sm font-semibold text-teal-200">{table.name}</p>
+            <p className="text-xs text-slate-400">{table.humanName}: {table.purpose}</p>
+          </div>
+          <Badge tone="blue">реальная таблица</Badge>
+        </div>
+      </div>
+      <div className="overflow-x-auto">
+        <table className="w-full min-w-[560px] text-left text-sm">
+          <thead>
+            <tr>
+              {table.columns.map((column) => (
+                <th
+                  key={column.name}
+                  className={cn(
+                    'border-b border-slate-800 px-3 py-3 font-mono text-xs uppercase text-slate-300',
+                    column.kind === 'primary' && 'bg-teal-400/10 text-teal-200',
+                    column.kind === 'foreign' && 'bg-sky-400/10 text-sky-200',
+                  )}
+                >
+                  {column.name}
+                  {column.kind === 'primary' && <span className="ml-2 rounded bg-teal-400/20 px-1.5 py-0.5 text-[10px]">PK</span>}
+                  {column.kind === 'foreign' && <span className="ml-2 rounded bg-sky-400/20 px-1.5 py-0.5 text-[10px]">FK</span>}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {table.rows.map((row, rowIndex) => (
+              <tr key={`${focus}-${rowIndex}`} className={cn('odd:bg-slate-950 even:bg-slate-900/45', rowIndex === 1 && 'outline outline-1 outline-teal-400/40')}>
+                {table.columns.map((column, columnIndex) => (
+                  <td
+                    key={column.name}
+                    className={cn(
+                      'border-b border-slate-800 px-3 py-3 text-slate-300',
+                      rowIndex === 1 && columnIndex === 0 && 'bg-teal-400/10 font-semibold text-teal-100',
+                      rowIndex === 1 && columnIndex === 2 && 'bg-amber-400/10 text-amber-100',
+                    )}
+                  >
+                    {String(row[column.name])}
+                  </td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      <div className="grid gap-2 border-t border-slate-800 p-3 text-xs text-slate-400 sm:grid-cols-3">
+        <p><span className="text-teal-200">PK</span> - главный id строки.</p>
+        <p><span className="text-sky-200">FK</span> - ссылка на другую таблицу.</p>
+        <p><span className="text-amber-200">Подсветка</span> - пример ячейки.</p>
+      </div>
+    </div>
+  )
+}
+
+function RelationNode({ title, main, detail, tone }: { title: string; main: string; detail: string; tone: 'teal' | 'blue' | 'amber' }) {
+  const tones = {
+    teal: 'border-teal-400/30 bg-teal-400/10 text-teal-100',
+    blue: 'border-sky-400/30 bg-sky-400/10 text-sky-100',
+    amber: 'border-amber-400/30 bg-amber-400/10 text-amber-100',
+  }
+
+  return (
+    <div className={cn('rounded-lg border p-4', tones[tone])}>
+      <p className="font-mono text-sm font-semibold">{title}</p>
+      <p className="mt-2 text-lg font-semibold text-white">{main}</p>
+      <p className="mt-1 text-sm">{detail}</p>
+    </div>
+  )
+}
+
+function RelationArrow({ label }: { label: string }) {
+  return (
+    <div className="flex items-center justify-center text-xs text-slate-400 lg:flex-col">
+      <span className="hidden h-px w-10 bg-slate-700 lg:block" />
+      <span className="rounded-full border border-slate-700 bg-slate-900 px-3 py-1 font-mono">{label}</span>
+      <span className="hidden h-px w-10 bg-slate-700 lg:block" />
     </div>
   )
 }
@@ -642,6 +838,8 @@ function ModulesView({
             </div>
           </div>
         </Card>
+
+        {activeModule.number === 0 && <FoundationPrimer />}
 
         <WorkedExampleCard example={workedExamples[activeModule.id]} />
 
